@@ -1,0 +1,7 @@
+[
+  {
+    "directory": "C:/Code/C/raylib",
+    "command": "gcc -I./include -L./lib -lraylib -lopengl32 -lgdi32 -lwinmm -c main.c",
+    "file": "main.c"
+  }
+]
