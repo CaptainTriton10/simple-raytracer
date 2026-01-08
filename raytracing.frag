@@ -4,7 +4,7 @@ out vec4 finalColour;
 uniform vec2 resolution;
 
 uniform float focalLength;
-// uniform vec3 cameraCenter;
+uniform vec3 cameraCenter;
 // uniform vec2 viewport;
 
 struct Ray {
@@ -12,7 +12,34 @@ struct Ray {
     vec3 direction;
 };
 
+float HitSphere(vec3 center, float radius, Ray ray) {
+    vec3 oc = center - ray.origin;
+
+    float a = dot(ray.direction, ray.direction);
+    float b = -2.0 * dot(ray.direction, oc);
+    float c = dot(oc, oc) - radius * radius;
+
+    float discriminant = b * b - 4 * a * c;
+
+    if (discriminant < 0) {
+        return -1.0;
+    } else {
+        return (-b - sqrt(discriminant)) / (2.0 * a);
+    }
+}
+
+vec3 At(Ray ray, float t) {
+    return ray.origin + ray.direction * t;
+}
+
 vec4 RayColour(Ray ray) {
+    float t = HitSphere(vec3(0.0, 0.0, -1.0), 0.5, ray);
+
+    if (t > 0) {
+        vec3 N = normalize(At(ray, t) - vec3(0.0, 0.0, -1.0));
+        return 0.5 * vec4(N.x + 1.0, N.y + 1.0, N.z + 1.0, 1.0);
+    }
+
     vec3 unitDirection = normalize(ray.direction);
     float a = 0.5 * (unitDirection.y + 1.0f);
 
@@ -25,13 +52,7 @@ vec4 RayColour(Ray ray) {
     return vec4(colour, 1.0);
 }
 
-vec3 At(Ray ray, float t) {
-    return ray.origin + ray.direction * t;
-}
-
 void main() {
-    vec3 cameraCenter = vec3(0.0, 0.0, 0.0);
-
     vec2 pixelIndex = gl_FragCoord.xy - vec2(0.5);
 
     float viewportHeight = 2.0;
