@@ -1,43 +1,117 @@
 #version 330
 
+#define SPHERE 0
+#define NONE -1
+
+#define MAX_OBJECTS 64
+#define POS_INFINITY 100000000
+
 out vec4 finalColour;
 uniform vec2 resolution;
 
 uniform float focalLength;
 uniform vec3 cameraCenter;
-// uniform vec2 viewport;
+
+struct HitRecord {
+    vec3 pos;
+    vec3 normal;
+    float t;
+    bool frontFace;
+};
+
+struct Hittable {
+    int type; // Object type (0 for sphere)
+    vec4 data; // e.g Sphere: xyz = pos, w = radius
+    bool isActive;
+};
 
 struct Ray {
     vec3 origin;
     vec3 direction;
 };
 
-float HitSphere(vec3 center, float radius, Ray ray) {
-    vec3 oc = center - ray.origin;
-
-    float a = dot(ray.direction, ray.direction);
-    float b = -2.0 * dot(ray.direction, oc);
-    float c = dot(oc, oc) - radius * radius;
-
-    float discriminant = b * b - 4 * a * c;
-
-    if (discriminant < 0) {
-        return -1.0;
-    } else {
-        return (-b - sqrt(discriminant)) / (2.0 * a);
-    }
-}
+struct Sphere {
+    vec3 pos;
+    float radius;
+};
 
 vec3 At(Ray ray, float t) {
     return ray.origin + ray.direction * t;
 }
 
-vec4 RayColour(Ray ray) {
-    float t = HitSphere(vec3(0.0, 0.0, -1.0), 0.5, ray);
+void SetFaceNormal(inout HitRecord rec, Ray ray, vec3 outwardNormal) {
+    rec.frontFace = dot(ray.direction, outwardNormal) < 0;
+    rec.normal = rec.frontFace ? outwardNormal : -outwardNormal;
+}
 
-    if (t > 0) {
-        vec3 N = normalize(At(ray, t) - vec3(0.0, 0.0, -1.0));
-        return 0.5 * vec4(N.x + 1.0, N.y + 1.0, N.z + 1.0, 1.0);
+float LengthSquared(vec3 v) {
+    return v.x * v.x + v.y * v.y + v.z * v.z;
+}
+
+bool HitSphere(Sphere sphere, Ray ray, float tMin, float tMax, inout HitRecord rec) {
+    vec3 oc = sphere.pos - ray.origin;
+
+    float a = LengthSquared(ray.direction);
+    float h = dot(ray.direction, oc);
+    float c = LengthSquared(oc) - sphere.radius * sphere.radius;
+
+    float discriminant = h * h - a * c;
+    if (discriminant < 0) {
+        return false;
+    }
+
+    float sqrtd = sqrt(discriminant);
+
+    float root = (h - sqrtd) / a;
+    if (root <= tMin || root >= tMax) {
+        root = (h + sqrtd) / a;
+        if (root <= tMin || root >= tMax) {
+            return false;
+        }
+    }
+
+    HitRecord temp;
+    temp.t = root;
+    temp.pos = At(ray, temp.t);
+    vec3 outwardNormal = (temp.pos - sphere.pos) / sphere.radius;
+
+    SetFaceNormal(temp, ray, outwardNormal);
+
+    rec = temp;
+
+    return true;
+}
+
+bool HitHittable(Hittable object, Ray ray, float tMin, float tMax, out HitRecord rec) {
+    if (object.type == SPHERE) {
+        Sphere sphere = Sphere(object.data.xyz, object.data.w);
+
+        return HitSphere(sphere, ray, tMin, tMax, rec);
+    } else if (object.type == NONE) {
+        // Do nothing
+    }
+}
+
+bool HitWorld(Ray ray, float tMin, float tMax, out HitRecord rec, Hittable objects[MAX_OBJECTS]) {
+    HitRecord temp;
+    bool hit = false;
+    float closest = tMax;
+
+    for (int i = 0; i < MAX_OBJECTS; i++) {
+        if (HitHittable(objects[i], ray, tMin, closest, temp) && objects[i].isActive) {
+            hit = true;
+            closest = temp.t;
+            rec = temp;
+        }
+    }
+
+    return hit;
+}
+
+vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
+    HitRecord rec;
+    if (HitWorld(ray, 0, POS_INFINITY, rec, objects)) {
+        return 0.5 * (rec.normal + vec3(1.0, 1.0, 1.0));
     }
 
     vec3 unitDirection = normalize(ray.direction);
@@ -49,12 +123,10 @@ vec4 RayColour(Ray ray) {
             a
         );
 
-    return vec4(colour, 1.0);
+    return colour;
 }
 
-void main() {
-    vec2 pixelIndex = gl_FragCoord.xy - vec2(0.5);
-
+vec3 CalculateRayDirection(vec2 pixelIndex) {
     float viewportHeight = 2.0;
     float viewportWidth = viewportHeight * (resolution.x / resolution.y);
 
@@ -70,7 +142,24 @@ void main() {
     vec3 pixelCenter = pixel00Loc + pixelIndex.x * pixelDeltaU + pixelIndex.y * pixelDeltaV;
     vec3 rayDirection = pixelCenter - cameraCenter;
 
-    Ray ray = Ray(cameraCenter, rayDirection);
+    return rayDirection;
+}
 
-    finalColour = RayColour(ray);
+void main() {
+    vec2 pixelIndex = gl_FragCoord.xy - vec2(0.5);
+    vec3 rayDirection = CalculateRayDirection(pixelIndex);
+
+    Hittable objects[MAX_OBJECTS];
+    objects[0] = Hittable(SPHERE, vec4(0.0, 0.0, 0.0, 0.5), true);
+    objects[1] = Hittable(SPHERE, vec4(1.0, 0.0, -2.0, 0.5), true);
+    objects[2] = Hittable(SPHERE, vec4(0.0, -10.5, 0.0, 10.0), true);
+
+    for (int i = 0; i < MAX_OBJECTS; i++) {
+        if (!objects[i].isActive) {
+            objects[i] = Hittable(NONE, vec4(0.0), false);
+        }
+    }
+
+    Ray ray = Ray(cameraCenter, rayDirection);
+    finalColour = vec4(RayColour(ray, objects), 1.0);
 }
