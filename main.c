@@ -1,4 +1,5 @@
 #include "raylib.h"
+#include <stdio.h>
 
 #define CAMERA_MOVE_SPEED 1.5
 
@@ -28,6 +29,14 @@ void Movement(float cameraCenter[3]) {
     if (IsKeyDown(KEY_SPACE)) {
         cameraCenter[1] += move;
     }
+}
+
+void DrawInfo(float cameraCenter[3]) {
+    // Camera position
+    char cameraPosInfo[128];
+    sprintf(cameraPosInfo, "Camera Position: [%.2f, %.2f, %.2f]", cameraCenter[0], cameraCenter[1], cameraCenter[2]);
+
+    DrawText(cameraPosInfo, 5, 25, 20, RED);
 }
 
 int main(void) {
