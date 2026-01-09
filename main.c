@@ -1,6 +1,23 @@
 #include "raylib.h"
 #include <stdio.h>
 
+// On Windows, target dedicated GPU with NVIDIA Optimus and AMD PowerXpress/Switchable Graphics
+#ifdef _WIN32
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+
+    // NVIDIA Optimus
+    __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+
+    // AMD PowerXpress/Switchable Graphics
+    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+
+    #ifdef __cplusplus
+    }
+    #endif
+#endif
+
 #define CAMERA_MOVE_SPEED 1.5
 
 void Movement(float cameraCenter[3]) {
@@ -47,7 +64,7 @@ int main(void) {
 
     InitWindow(screenWidth, screenHeight, "Simple Raytracer");
 
-    float cameraCenter[3] = {0.0f, 0.0f, 0.0f};
+    float cameraCenter[3] = {0.0f, 0.0f, 2.0f};
     SetTargetFPS(100);
 
     Shader shader = LoadShader(0, "raytracing.frag");
@@ -84,6 +101,7 @@ int main(void) {
                 DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), WHITE);
             EndShaderMode();
             DrawFPS(5, 5);
+            DrawInfo(cameraCenter);
         EndDrawing();
     }
 
