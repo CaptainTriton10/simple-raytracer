@@ -19,6 +19,11 @@ struct HitRecord {
     bool frontFace;
 };
 
+struct Interval {
+    float min;
+    float max;
+};
+
 struct Hittable {
     int type; // Object type (0 for sphere)
     vec4 data; // e.g Sphere: xyz = pos, w = radius
@@ -39,6 +44,18 @@ vec3 At(Ray ray, float t) {
     return ray.origin + ray.direction * t;
 }
 
+float IntervalSize(Interval interval) {
+    return interval.max - interval.min;
+}
+
+bool IntervalContains(Interval interval, float x) {
+    return interval.min <= x && interval.max >= x;
+}
+
+bool IntervalSurrounds(Interval interval, float x) {
+    return interval.min < x && interval.max > x;
+}
+
 void SetFaceNormal(inout HitRecord rec, Ray ray, vec3 outwardNormal) {
     rec.frontFace = dot(ray.direction, outwardNormal) < 0;
     rec.normal = rec.frontFace ? outwardNormal : -outwardNormal;
@@ -48,7 +65,7 @@ float LengthSquared(vec3 v) {
     return v.x * v.x + v.y * v.y + v.z * v.z;
 }
 
-bool HitSphere(Sphere sphere, Ray ray, float tMin, float tMax, inout HitRecord rec) {
+bool HitSphere(Sphere sphere, Ray ray, Interval rayT, inout HitRecord rec) {
     vec3 oc = sphere.pos - ray.origin;
 
     float a = LengthSquared(ray.direction);
@@ -63,9 +80,9 @@ bool HitSphere(Sphere sphere, Ray ray, float tMin, float tMax, inout HitRecord r
     float sqrtd = sqrt(discriminant);
 
     float root = (h - sqrtd) / a;
-    if (root <= tMin || root >= tMax) {
+    if (!IntervalSurrounds(rayT, root)) {
         root = (h + sqrtd) / a;
-        if (root <= tMin || root >= tMax) {
+        if (!IntervalSurrounds(rayT, root)) {
             return false;
         }
     }
@@ -82,23 +99,23 @@ bool HitSphere(Sphere sphere, Ray ray, float tMin, float tMax, inout HitRecord r
     return true;
 }
 
-bool HitHittable(Hittable object, Ray ray, float tMin, float tMax, out HitRecord rec) {
+bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
     if (object.type == SPHERE) {
         Sphere sphere = Sphere(object.data.xyz, object.data.w);
 
-        return HitSphere(sphere, ray, tMin, tMax, rec);
+        return HitSphere(sphere, ray, rayT, rec);
     } else if (object.type == NONE) {
         // Do nothing
     }
 }
 
-bool HitWorld(Ray ray, float tMin, float tMax, out HitRecord rec, Hittable objects[MAX_OBJECTS]) {
+bool HitWorld(Ray ray, Interval rayT, out HitRecord rec, Hittable objects[MAX_OBJECTS]) {
     HitRecord temp;
     bool hit = false;
-    float closest = tMax;
+    float closest = rayT.max;
 
     for (int i = 0; i < MAX_OBJECTS; i++) {
-        if (HitHittable(objects[i], ray, tMin, closest, temp) && objects[i].isActive) {
+        if (HitHittable(objects[i], ray, Interval(rayT.min, closest), temp) && objects[i].isActive) {
             hit = true;
             closest = temp.t;
             rec = temp;
@@ -110,7 +127,7 @@ bool HitWorld(Ray ray, float tMin, float tMax, out HitRecord rec, Hittable objec
 
 vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
     HitRecord rec;
-    if (HitWorld(ray, 0, POS_INFINITY, rec, objects)) {
+    if (HitWorld(ray, Interval(0, POS_INFINITY), rec, objects)) {
         return 0.5 * (rec.normal + vec3(1.0, 1.0, 1.0));
     }
 
