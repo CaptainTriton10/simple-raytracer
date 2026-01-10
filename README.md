@@ -9,4 +9,4 @@ This project is currently still in early alpha, and I haven't created releases f
 
 - **Camera Movement** - WASD
 
-- **Zoom** - + / -
+- **Zoom** - Scroll Wheel
