@@ -35,10 +35,31 @@ struct Ray {
     vec3 direction;
 };
 
+struct Camera {
+    int imageHeight;
+    float focalLength;
+
+    int samplesPerPixel;
+    float pixelSamplesScale;
+
+    vec3 position;
+    vec3 pixel00Loc;
+    vec3 pixelDeltaU;
+    vec3 pixelDeltaV;
+};
+
 struct Sphere {
     vec3 pos;
     float radius;
 };
+
+float RandomNormalised(vec2 seed) {
+    return fract(sin(dot(seed, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+float Random(vec2 seed, float min, float max) {
+    return min + (max - min) * RandomNormalised(seed);
+}
 
 vec3 At(Ray ray, float t) {
     return ray.origin + ray.direction * t;
@@ -54,6 +75,13 @@ bool IntervalContains(Interval interval, float x) {
 
 bool IntervalSurrounds(Interval interval, float x) {
     return interval.min < x && interval.max > x;
+}
+
+float IntervalClamp(Interval interval, float x) {
+    if (x < interval.min) return interval.min;
+    if (x > interval.max) return interval.max;
+
+    return x;
 }
 
 void SetFaceNormal(inout HitRecord rec, Ray ray, vec3 outwardNormal) {
@@ -143,40 +171,50 @@ vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
     return colour;
 }
 
-vec3 CalculateRayDirection(vec2 pixelIndex) {
+void InitialiseCamera(inout Camera camera) {
     float viewportHeight = 2.0;
     float viewportWidth = viewportHeight * (resolution.x / resolution.y);
 
     vec3 viewportU = vec3(viewportWidth, 0.0, 0.0);
     vec3 viewportV = vec3(0.0, viewportHeight, 0.0);
 
-    vec3 pixelDeltaU = viewportU / resolution.x;
-    vec3 pixelDeltaV = viewportV / resolution.y;
+    camera.pixelDeltaU = viewportU / resolution.x;
+    camera.pixelDeltaV = viewportV / resolution.y;
 
-    vec3 viewportUpperLeft = cameraCenter - vec3(0.0, 0.0, focalLength) - viewportU / 2 - viewportV / 2;
-    vec3 pixel00Loc = viewportUpperLeft + 0.5 * (pixelDeltaU + pixelDeltaV);
+    vec3 viewportUpperLeft = camera.position - vec3(0.0, 0.0, camera.focalLength) - viewportU / 2 - viewportV / 2;
+    camera.pixel00Loc = viewportUpperLeft + 0.5 * (camera.pixelDeltaU + camera.pixelDeltaV);
+}
 
-    vec3 pixelCenter = pixel00Loc + pixelIndex.x * pixelDeltaU + pixelIndex.y * pixelDeltaV;
-    vec3 rayDirection = pixelCenter - cameraCenter;
+vec3 CalculateRayDirection(Camera camera, vec2 pixelIndex) {
+    vec3 pixelCenter = camera.pixel00Loc + pixelIndex.x * camera.pixelDeltaU + pixelIndex.y * camera.pixelDeltaV;
+    vec3 rayDirection = pixelCenter - camera.position;
 
     return rayDirection;
 }
 
 void main() {
     vec2 pixelIndex = gl_FragCoord.xy - vec2(0.5);
-    vec3 rayDirection = CalculateRayDirection(pixelIndex);
+
+    Camera camera;
+    camera.focalLength = focalLength;
+
+    InitialiseCamera(camera);
 
     Hittable objects[MAX_OBJECTS];
+
+    // Create some objects
     objects[0] = Hittable(SPHERE, vec4(0.0, 0.0, 0.0, 0.5), true);
     objects[1] = Hittable(SPHERE, vec4(1.0, 0.0, -2.0, 0.5), true);
     objects[2] = Hittable(SPHERE, vec4(0.0, -10.5, 0.0, 10.0), true);
 
+    // Fill the rest as empty
     for (int i = 0; i < MAX_OBJECTS; i++) {
         if (!objects[i].isActive) {
             objects[i] = Hittable(NONE, vec4(0.0), false);
         }
     }
 
+    vec3 rayDirection = CalculateRayDirection(camera, pixelIndex);
     Ray ray = Ray(cameraCenter, rayDirection);
     finalColour = vec4(RayColour(ray, objects), 1.0);
 }
