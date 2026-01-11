@@ -7,6 +7,12 @@ This project is currently still in early alpha, and I haven't created releases f
 
 ## Controls
 
-- **Camera Movement** - WASD
+### Camera
+
+- **Movement** - WASD
 
 - **Zoom** - Scroll Wheel
+
+### Render Settings
+
+- **Anti-Aliasing Toggle** - '1' key
