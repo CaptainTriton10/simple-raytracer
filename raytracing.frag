@@ -6,8 +6,11 @@
 #define MAX_OBJECTS 64
 #define POS_INFINITY 100000000
 
+#define MAX_DEPTH 10
+
 out vec4 finalColour;
 uniform vec2 resolution;
+uniform float time;
 
 uniform float focalLength;
 uniform vec3 cameraCenter;
@@ -55,12 +58,52 @@ struct Sphere {
     float radius;
 };
 
-float RandomNormalised(vec2 seed) {
+float LengthSquared(vec3 v) {
+    return v.x * v.x + v.y * v.y + v.z * v.z;
+}
+
+float Random(vec2 seed) {
     return fract(sin(dot(seed, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
 float Random(vec2 seed, float min, float max) {
-    return min + (max - min) * RandomNormalised(seed);
+    return min + (max - min) * Random(seed);
+}
+
+vec3 RandomVec3(vec2 seed) {
+    return vec3(
+        Random(seed * vec2(13.0, 17.0)),
+        Random(seed * vec2(31.0, 37.0)),
+        Random(seed * vec2(51.0, 97.0)));
+}
+
+vec3 RandomVec3(vec2 seed, float min, float max) {
+    return vec3(
+        Random(seed * vec2(13.0, 17.0), min, max),
+        Random(seed * vec2(31.0, 37.0), min, max),
+        Random(seed * vec2(51.0, 97.0), min, max));
+}
+
+vec3 RandomUnitVec3(vec2 seed) {
+    for (int i = 0; i < 16; i++) {
+        vec3 p = RandomVec3(seed + i * 13.0, -1.0, 1.0);
+        float lensq = LengthSquared(p);
+
+        if (lensq <= 1 && lensq > 1e-45) {
+            return p / sqrt(lensq);
+        }
+    }
+
+    return vec3(1.0, 0.0, 0.0);
+}
+
+vec3 RandomOnHemisphere(vec3 normal, vec2 seed) {
+    vec3 onUnitSphere = RandomUnitVec3(seed);
+    if (dot(onUnitSphere, normal) > 0.0) {
+        return onUnitSphere;
+    } else {
+        return -onUnitSphere;
+    }
 }
 
 vec3 At(Ray ray, float t) {
@@ -79,20 +122,9 @@ bool IntervalSurrounds(Interval interval, float x) {
     return interval.min < x && interval.max > x;
 }
 
-float IntervalClamp(Interval interval, float x) {
-    if (x < interval.min) return interval.min;
-    if (x > interval.max) return interval.max;
-
-    return x;
-}
-
 void SetFaceNormal(inout HitRecord rec, Ray ray, vec3 outwardNormal) {
     rec.frontFace = dot(ray.direction, outwardNormal) < 0;
     rec.normal = rec.frontFace ? outwardNormal : -outwardNormal;
-}
-
-float LengthSquared(vec3 v) {
-    return v.x * v.x + v.y * v.y + v.z * v.z;
 }
 
 bool HitSphere(Sphere sphere, Ray ray, Interval rayT, inout HitRecord rec) {
@@ -156,21 +188,32 @@ bool HitWorld(Ray ray, Interval rayT, out HitRecord rec, Hittable objects[MAX_OB
 }
 
 vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
-    HitRecord rec;
-    if (HitWorld(ray, Interval(0, POS_INFINITY), rec, objects)) {
-        return 0.5 * (rec.normal + vec3(1.0, 1.0, 1.0));
+    vec3 accumulated = vec3(1.0);
+    Ray currentRay = ray;
+
+    for (int i = 0; i < MAX_DEPTH; i++) {
+        HitRecord rec;
+
+        if (HitWorld(currentRay, Interval(0.0001, POS_INFINITY), rec, objects)) {
+            vec3 direction = RandomOnHemisphere(rec.normal, gl_FragCoord.xy);
+            accumulated *= 0.5;
+
+            currentRay = Ray(rec.pos, direction);
+        } else {
+            vec3 unitDirection = normalize(ray.direction);
+            float a = 0.5 * (unitDirection.y + 1.0f);
+
+            vec3 colour = mix(
+                    vec3(1.0, 1.0, 1.0),
+                    vec3(0.5, 0.7, 1.0),
+                    a
+                );
+
+            return accumulated * colour;
+        }
     }
 
-    vec3 unitDirection = normalize(ray.direction);
-    float a = 0.5 * (unitDirection.y + 1.0f);
-
-    vec3 colour = mix(
-            vec3(1.0, 1.0, 1.0),
-            vec3(0.5, 0.7, 1.0),
-            a
-        );
-
-    return colour;
+    return vec3(0.0);
 }
 
 void InitialiseCamera(inout Camera camera) {
@@ -197,14 +240,15 @@ vec3 CalculateRayDirection(Camera camera, vec2 pixelIndex) {
 }
 
 vec3 SampleSquare(int index) {
-    vec2 seed = gl_FragCoord.xy + vec2(index * 17, index * 31);
+    vec2 seed = gl_FragCoord.xy + vec2(index * 17.0, index * 31.0);
     return vec3(
-        RandomNormalised(seed) - 0.5,
-        RandomNormalised(seed.yx) - 0.5,
+        Random(seed) - 0.5,
+        Random(seed.yx) - 0.5,
         0.0
     );
 }
 
+// Index = the current sample index
 Ray GetRay(Camera camera, vec2 pixelIndex, int index) {
     vec3 offset = SampleSquare(index);
     vec3 pixelSample = camera.pixel00Loc
@@ -231,7 +275,7 @@ void main() {
 
     // Create some objects
     objects[0] = Hittable(SPHERE, vec4(0.0, 0.0, 0.0, 0.5), true);
-    objects[1] = Hittable(SPHERE, vec4(1.0, 0.0, -2.0, 0.5), true);
+    objects[1] = Hittable(SPHERE, vec4(1.0, -0.5, -2.0, 0.5), true);
     objects[2] = Hittable(SPHERE, vec4(0.0, -10.5, 0.0, 10.0), true);
 
     // Fill the rest as empty
