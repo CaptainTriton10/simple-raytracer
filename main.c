@@ -21,6 +21,10 @@
 #define CAMERA_MOVE_SPEED 1.5
 #define CAMERA_ZOOM_SPEED 4
 
+typedef struct RenderSettings {
+    int aaEnabled;
+} RenderSettings;
+
 void Movement(Camera *camera) {
     float move = CAMERA_MOVE_SPEED * GetFrameTime();
 
@@ -62,7 +66,13 @@ void Zoom(Camera *camera) {
     }
 }
 
-void DrawInfo(Camera camera) {
+void Settings(RenderSettings *settings) {
+    if (IsKeyPressed(KEY_ONE)) {
+        settings->aaEnabled = settings->aaEnabled == 1 ? 0 : 1;
+    }
+}
+
+void DrawInfo(Camera camera, RenderSettings settings) {
     // Camera position
     char cameraPosInfo[128];
     sprintf(cameraPosInfo, "Camera Position: [%.2f, %.2f, %.2f]", camera.position.x, camera.position.y, camera.position.z);
@@ -70,8 +80,13 @@ void DrawInfo(Camera camera) {
     char cameraFovyInfo[64];
     sprintf(cameraFovyInfo, "Camera Focal Length: %.2f", camera.fovy);
 
+    char aaInfo[64];
+    sprintf(aaInfo, "Anti-Aliasing: %d", settings.aaEnabled);
+
     DrawText(cameraPosInfo, 5, 25, 20, RED);
     DrawText(cameraFovyInfo, 5, 50, 20, RED);
+
+    DrawText(aaInfo, 5, 100, 20, YELLOW);
 }
 
 int main(void) {
@@ -87,6 +102,10 @@ int main(void) {
         .fovy = 2.0f
     };
 
+    RenderSettings settings = {
+        .aaEnabled = false
+    };
+
     SetTargetFPS(100);
 
     Shader shader = LoadShader(0, "raytracing.frag");
@@ -98,29 +117,35 @@ int main(void) {
     int camCenLoc = GetShaderLocation(shader, "cameraCenter");
     int viewpLoc = GetShaderLocation(shader, "viewport");
 
+    int aaLoc = GetShaderLocation(shader, "aaEnabled");
+
     while (!WindowShouldClose()) {    // Detect window close button or ESC key
-
-
         Movement(&camera);
         Zoom(&camera);
+        Settings(&settings);
 
         float time = GetTime();
         float res[2] = { (float)GetScreenWidth(), (float)GetScreenHeight() };
 
+        // Boring stuff
         SetShaderValue(shader, timeLoc, &time, SHADER_UNIFORM_FLOAT);
         SetShaderValue(shader, resLoc, res, SHADER_UNIFORM_VEC2);
 
         float pos[3] = {camera.position.x, camera.position.y, camera.position.z};
 
+        // Fun stuff :) (camera settings)
         SetShaderValue(shader, flenLoc, &camera.fovy, SHADER_UNIFORM_FLOAT);
         SetShaderValue(shader, camCenLoc, pos, SHADER_UNIFORM_VEC3);
+
+        // Render settings
+        SetShaderValue(shader, aaLoc, &settings.aaEnabled, SHADER_UNIFORM_INT);
 
         BeginDrawing();
             BeginShaderMode(shader);
                 DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), WHITE);
             EndShaderMode();
             DrawFPS(5, 5);
-            DrawInfo(camera);
+            DrawInfo(camera, settings);
         EndDrawing();
     }
 
