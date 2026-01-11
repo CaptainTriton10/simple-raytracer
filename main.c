@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include <stdio.h>
+#include <math.h>
 
 // On Windows, target dedicated GPU with NVIDIA Optimus and AMD PowerXpress/Switchable Graphics
 #ifdef _WIN32
@@ -24,6 +25,10 @@
 typedef struct RenderSettings {
     int aaEnabled;
 } RenderSettings;
+
+float Clampf(float value, float min, float max) {
+    return fmaxf(min, fminf(value, max));
+}
 
 void Movement(Camera *camera) {
     float move = CAMERA_MOVE_SPEED * GetFrameTime();
@@ -55,15 +60,9 @@ void Movement(Camera *camera) {
 
 void Zoom(Camera *camera) {
     float zoomFactor = CAMERA_ZOOM_SPEED * GetFrameTime();
-    float scroll = GetMouseWheelMove();
+    float scroll = 1 + zoomFactor * GetMouseWheelMove();
 
-    if (camera->fovy > 0.1 && scroll < 0) {
-        camera->fovy *= 1 + scroll * zoomFactor;
-    }
-
-    if (camera->fovy < 30 && scroll > 0) {
-        camera->fovy *= 1 + scroll * zoomFactor;
-    }
+    camera->fovy = Clampf(camera->fovy * scroll, 0.1, 30);
 }
 
 void Settings(RenderSettings *settings) {
