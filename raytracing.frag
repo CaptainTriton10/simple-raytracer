@@ -6,7 +6,7 @@
 #define MAX_OBJECTS 64
 #define POS_INFINITY 100000000
 
-#define MAX_DEPTH 10
+#define MAX_DEPTH 2
 
 out vec4 finalColour;
 uniform vec2 resolution;
@@ -62,8 +62,13 @@ float LengthSquared(vec3 v) {
     return v.x * v.x + v.y * v.y + v.z * v.z;
 }
 
-float Random(vec2 seed) {
-    return fract(sin(dot(seed, vec2(12.9898, 78.233))) * 43758.5453);
+float Random(vec2 p)
+{
+    ivec2 i = ivec2(p);
+    uint h = uint(i.x) * 1664525u + uint(i.y) * 1013904223u;
+    h ^= h >> 16;
+    h *= 2246822519u;
+    return float(h) / float(0xffffffffu);
 }
 
 float Random(vec2 seed, float min, float max) {
@@ -195,8 +200,8 @@ vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
         HitRecord rec;
 
         if (HitWorld(currentRay, Interval(0.0001, POS_INFINITY), rec, objects)) {
-            vec3 direction = RandomOnHemisphere(rec.normal, gl_FragCoord.xy);
-            accumulated *= 0.5;
+            vec3 direction = RandomOnHemisphere(rec.normal, gl_FragCoord.xy * (gl_FragCoord.yx * time));
+            accumulated *= vec3(0.3, 0.3, 1.0);
 
             currentRay = Ray(rec.pos, direction);
         } else {
