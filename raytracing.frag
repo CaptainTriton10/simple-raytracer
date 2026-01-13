@@ -6,7 +6,7 @@
 #define MAX_OBJECTS 64
 #define POS_INFINITY 100000000
 
-#define MAX_DEPTH 2
+#define MAX_DEPTH 100
 
 out vec4 finalColour;
 uniform vec2 resolution;
@@ -200,8 +200,8 @@ vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
         HitRecord rec;
 
         if (HitWorld(currentRay, Interval(0.0001, POS_INFINITY), rec, objects)) {
-            vec3 direction = RandomOnHemisphere(rec.normal, gl_FragCoord.xy * (gl_FragCoord.yx * time));
-            accumulated *= vec3(0.3, 0.3, 1.0);
+            vec3 direction = rec.normal + RandomUnitVec3(gl_FragCoord.xy * (gl_FragCoord.yx * time));
+            accumulated *= 0.5;
 
             currentRay = Ray(rec.pos, direction);
         } else {
