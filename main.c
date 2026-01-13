@@ -71,8 +71,10 @@ void Settings(RenderSettings *settings) {
     }
 }
 
-void DrawInfo(Camera camera, RenderSettings settings) {
-    // Camera position
+void DrawInfo(Camera camera, RenderSettings settings, int frame) {
+    char frameInfo[16];
+    sprintf(frameInfo, "Frame: %d", frame);
+
     char cameraPosInfo[128];
     sprintf(cameraPosInfo, "Camera Position: [%.2f, %.2f, %.2f]", camera.position.x, camera.position.y, camera.position.z);
 
@@ -82,10 +84,25 @@ void DrawInfo(Camera camera, RenderSettings settings) {
     char aaInfo[64];
     sprintf(aaInfo, "Anti-Aliasing: %d", settings.aaEnabled);
 
-    DrawText(cameraPosInfo, 5, 25, 20, RED);
-    DrawText(cameraFovyInfo, 5, 50, 20, RED);
+    DrawFPS(5, 5);
 
-    DrawText(aaInfo, 5, 100, 20, YELLOW);
+    DrawText(cameraPosInfo, 5, 50, 20, RED);
+    DrawText(cameraFovyInfo, 5, 75, 20, RED);
+
+    DrawText(aaInfo, 5, 125, 20, YELLOW);
+
+    DrawText(frameInfo, 5, 175, 20, PURPLE);
+}
+
+void CopyTexture(RenderTexture source, RenderTexture target, float resolution[2]) {
+    BeginTextureMode(target);
+        DrawTextureRec(
+            source.texture,
+            (Rectangle){ 0, 0, (float)resolution[0], -(float)resolution[1] },
+            (Vector2){ 0, 0 },
+            WHITE
+        );
+    EndTextureMode();
 }
 
 int main(void) {
@@ -107,48 +124,125 @@ int main(void) {
 
     SetTargetFPS(100);
 
-    Shader shader = LoadShader(0, "raytracing.frag");
+    Shader raytracing = LoadShader(0, "raytracing.frag");
+    Shader denoiser = LoadShader(0, "denoise.frag");
 
-    int timeLoc = GetShaderLocation(shader, "time");
-    int resLoc  = GetShaderLocation(shader, "resolution");
+    int resLocDns = GetShaderLocation(denoiser, "resolution");
 
-    int flenLoc = GetShaderLocation(shader, "focalLength");
-    int camCenLoc = GetShaderLocation(shader, "cameraCenter");
-    int viewpLoc = GetShaderLocation(shader, "viewport");
+    int prevFrLoc = GetShaderLocation(denoiser, "prevFrame");
+    int accRndLoc = GetShaderLocation(denoiser, "accRender");
 
-    int aaLoc = GetShaderLocation(shader, "aaEnabled");
+    int timeLoc = GetShaderLocation(raytracing, "time");
+    int resLocRTX  = GetShaderLocation(raytracing, "resolution");
 
+    int flenLoc = GetShaderLocation(raytracing, "focalLength");
+    int camCenLoc = GetShaderLocation(raytracing, "cameraCenter");
+    int viewpLoc = GetShaderLocation(raytracing, "viewport");
+
+    int aaLoc = GetShaderLocation(raytracing, "aaEnabled");
+
+    RenderTexture prevFrame = LoadRenderTexture(screenWidth, screenHeight);
+    RenderTexture accA = LoadRenderTexture(screenWidth, screenHeight);
+    RenderTexture accB = LoadRenderTexture(screenWidth, screenHeight);
+
+    bool useA = true;
+
+    int frame = 0;
     while (!WindowShouldClose()) {    // Detect window close button or ESC key
+        float pos[3] = {camera.position.x, camera.position.y, camera.position.z};
+        float res[2] = { (float)GetScreenWidth(), (float)GetScreenHeight() };
+        float time = GetTime();
+
         Movement(&camera);
         Zoom(&camera);
         Settings(&settings);
 
-        float time = GetTime();
-        float res[2] = { (float)GetScreenWidth(), (float)GetScreenHeight() };
-
         // Boring stuff
-        SetShaderValue(shader, timeLoc, &time, SHADER_UNIFORM_FLOAT);
-        SetShaderValue(shader, resLoc, res, SHADER_UNIFORM_VEC2);
-
-        float pos[3] = {camera.position.x, camera.position.y, camera.position.z};
+        SetShaderValue(raytracing, timeLoc, &time, SHADER_UNIFORM_FLOAT);
+        SetShaderValue(raytracing, resLocRTX, res, SHADER_UNIFORM_VEC2);
 
         // Fun stuff :) (camera settings)
-        SetShaderValue(shader, flenLoc, &camera.fovy, SHADER_UNIFORM_FLOAT);
-        SetShaderValue(shader, camCenLoc, pos, SHADER_UNIFORM_VEC3);
+        SetShaderValue(raytracing, flenLoc, &camera.fovy, SHADER_UNIFORM_FLOAT);
+        SetShaderValue(raytracing, camCenLoc, pos, SHADER_UNIFORM_VEC3);
 
         // Render settings
-        SetShaderValue(shader, aaLoc, &settings.aaEnabled, SHADER_UNIFORM_INT);
+        SetShaderValue(raytracing, aaLoc, &settings.aaEnabled, SHADER_UNIFORM_INT);
 
-        BeginDrawing();
-            BeginShaderMode(shader);
+        BeginTextureMode(prevFrame);
+            ClearBackground(BLACK);
+            BeginShaderMode(raytracing);
                 DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), WHITE);
             EndShaderMode();
-            DrawFPS(5, 5);
-            DrawInfo(camera, settings);
-        EndDrawing();
+        EndTextureMode();
+
+        if (frame == 0) {
+            CopyTexture(prevFrame, accA, res);
+
+            BeginDrawing();
+                ClearBackground(WHITE);
+                DrawTextureRec(
+                    accA.texture,
+                    (Rectangle){ 0, 0, (float)screenWidth, -(float)screenHeight },
+                    (Vector2){ 0, 0 },
+                    WHITE
+                );
+                DrawInfo(camera, settings, frame);
+            EndDrawing();
+        } else {
+            SetShaderValue(denoiser, resLocDns, res, SHADER_UNIFORM_VEC2);
+
+            BeginTextureMode(useA ? accB : accA);
+                ClearBackground(BLACK);
+                BeginShaderMode(denoiser);
+                    SetShaderValueTexture(denoiser, prevFrLoc, prevFrame.texture);
+                    SetShaderValueTexture(denoiser, accRndLoc, useA ? accA.texture : accB.texture);
+
+                    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), WHITE);
+                EndShaderMode();
+            EndTextureMode();
+
+            BeginDrawing();
+                ClearBackground(WHITE);
+                DrawTextureRec(
+                    useA ? accB.texture : accA.texture,
+                    (Rectangle){ 0, 0, (float)screenWidth, -(float)screenHeight },
+                    (Vector2){ 0, 0 },
+                    WHITE
+                );
+                DrawInfo(camera, settings, frame);
+            EndDrawing();
+
+            useA = !useA;
+        }
+
+        frame++;
     }
 
     CloseWindow();
 
     return 0;
 }
+
+
+
+
+
+
+
+
+// BeginTextureMode(target);
+//     BeginShaderMode(denoiser);
+//         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), WHITE);
+//     EndShaderMode();
+// EndTextureMode();
+
+// BeginDrawing();
+//     ClearBackground(MAGENTA);
+//     DrawTextureRec(
+//         target.texture,
+//         (Rectangle){ 0, 0, (float)screenWidth, -(float)screenHeight },
+//         (Vector2){ 0, 0 },
+//         WHITE
+//     );
+//     DrawInfo(camera, settings, frame);
+// EndDrawing();
