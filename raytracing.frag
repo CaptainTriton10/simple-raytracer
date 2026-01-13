@@ -266,6 +266,23 @@ Ray GetRay(Camera camera, vec2 pixelIndex, int index) {
     return Ray(rayOrigin, rayDirection);
 }
 
+vec3 LinearToGamma(vec3 colour) {
+    vec3 result;
+    if (colour.x > 0) {
+        result.x = sqrt(colour.x);
+    }
+
+    if (colour.y > 0) {
+        result.y = sqrt(colour.y);
+    }
+
+    if (colour.z > 0) {
+        result.z = sqrt(colour.z);
+    }
+
+    return result;
+}
+
 void main() {
     vec2 pixelIndex = gl_FragCoord.xy - vec2(0.5);
 
@@ -302,6 +319,6 @@ void main() {
     } else {
         vec3 rayDirection = CalculateRayDirection(camera, pixelIndex);
         Ray ray = Ray(cameraCenter, rayDirection);
-        finalColour = vec4(RayColour(ray, objects), 1.0);
+        finalColour = vec4(LinearToGamma(RayColour(ray, objects)), 1.0);
     }
 }
