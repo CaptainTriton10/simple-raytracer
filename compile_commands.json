@@ -1,7 +1,7 @@
 [
   {
     "directory": "C:/Code/C/raylib",
-    "command": "gcc -I./include -L./lib -lraylib -lopengl32 -lgdi32 -lwinmm -c main.c",
-    "file": "main.c"
+    "command": "gcc -I./include -L./lib -lraylib -lopengl32 -lgdi32 -lwinmm -c C:/Code/HackClub/simple-raytracer/src/main.c",
+    "file": "C:/Code/HackClub/simple-raytracer/src/main.c"
   }
 ]

@@ -124,8 +124,8 @@ int main(void) {
 
     SetTargetFPS(100);
 
-    Shader raytracing = LoadShader(0, "raytracing.frag");
-    Shader denoiser = LoadShader(0, "denoise.frag");
+    Shader raytracing = LoadShader(0, "src/shaders/raytracing.frag");
+    Shader denoiser = LoadShader(0, "src/shaders/denoise.frag");
 
     int resLocDns = GetShaderLocation(denoiser, "resolution");
 
