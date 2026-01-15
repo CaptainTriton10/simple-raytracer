@@ -30,32 +30,41 @@ float Clampf(float value, float min, float max) {
     return fmaxf(min, fminf(value, max));
 }
 
-void Movement(Camera *camera) {
+bool Movement(Camera *camera) {
     float move = CAMERA_MOVE_SPEED * GetFrameTime();
+    bool changed = false;
 
     if (IsKeyDown(KEY_W)) {
         camera->position.z += -move;
+        changed = true;
     }
 
     if (IsKeyDown(KEY_A)) {
         camera->position.x += -move;
+        changed = true;
     }
 
     if (IsKeyDown(KEY_S)) {
         camera->position.z += move;
+        changed = true;
     }
 
     if (IsKeyDown(KEY_D)) {
         camera->position.x += move;
+        changed = true;
     }
 
     if (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_C)) {
         camera->position.y += -move;
+        changed = true;
     }
 
     if (IsKeyDown(KEY_SPACE)) {
         camera->position.y += move;
+        changed = true;
     }
+
+    return changed;
 }
 
 void Zoom(Camera *camera) {
@@ -132,6 +141,8 @@ int main(void) {
     int prevFrLoc = GetShaderLocation(denoiser, "prevFrame");
     int accRndLoc = GetShaderLocation(denoiser, "accRender");
 
+    int changedLoc = GetShaderLocation(denoiser, "changed");
+
     int timeLoc = GetShaderLocation(raytracing, "time");
     int resLocRTX  = GetShaderLocation(raytracing, "resolution");
 
@@ -153,7 +164,9 @@ int main(void) {
         float res[2] = { (float)GetScreenWidth(), (float)GetScreenHeight() };
         float time = GetTime();
 
-        Movement(&camera);
+        int changed = 0;
+
+        changed = Movement(&camera) ? 1 : 0;
         Zoom(&camera);
         Settings(&settings);
 
@@ -190,6 +203,7 @@ int main(void) {
             EndDrawing();
         } else {
             SetShaderValue(denoiser, resLocDns, res, SHADER_UNIFORM_VEC2);
+            SetShaderValue(denoiser, changedLoc, &changed, SHADER_UNIFORM_INT);
 
             BeginTextureMode(useA ? accB : accA);
                 ClearBackground(BLACK);
