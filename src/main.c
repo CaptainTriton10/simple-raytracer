@@ -1,7 +1,6 @@
 #include "../include/helpers.h"
 #include "raylib.h"
 #include <math.h>
-#include <stdio.h>
 
 // On Windows, target dedicated GPU with NVIDIA Optimus and AMD PowerXpress/Switchable Graphics
 #ifdef _WIN32
@@ -44,22 +43,8 @@ int main(void) {
     Shader raytracing = LoadShader(0, "src/shaders/raytracing.frag");
     Shader denoiser = LoadShader(0, "src/shaders/denoise.frag");
 
-    int resLocDns = GetShaderLocation(denoiser, "resolution");
-
-    int prevFrLoc = GetShaderLocation(denoiser, "prevFrame");
-    int accRndLoc = GetShaderLocation(denoiser, "accRender");
-
-    int changedLoc = GetShaderLocation(denoiser, "changed");
-    int frameLoc = GetShaderLocation(denoiser, "frame");
-
-    int timeLoc = GetShaderLocation(raytracing, "time");
-    int resLocRTX  = GetShaderLocation(raytracing, "resolution");
-
-    int flenLoc = GetShaderLocation(raytracing, "focalLength");
-    int camCenLoc = GetShaderLocation(raytracing, "cameraCenter");
-    int viewpLoc = GetShaderLocation(raytracing, "viewport");
-
-    int aaLoc = GetShaderLocation(raytracing, "aaEnabled");
+    DenoiserShaderLocations denoiserLocs = GetDenoiserLocations(denoiser);
+    RaytracerShaderLocations raytracerLocs = GetRaytracerLocations(raytracing);
 
     RenderTexture prevFrame = LoadRenderTexture(screenWidth, screenHeight);
     RenderTexture accA = LoadRenderTexture(screenWidth, screenHeight);
@@ -73,10 +58,17 @@ int main(void) {
         float time = GetTime();
 
         int changed = 0;
-
         changed = Movement(&camera) ? 1 : 0;
 
         float pos[3] = {camera.position.x, camera.position.y, camera.position.z};
+
+        RaytracerShaderValues raytracerValues = {
+            .time = time,
+            .resolution = res,
+            .focalLength = camera.fovy,
+            .cameraCenter = pos,
+            .antiAliasing = settings.aaEnabled
+        };
 
         if (changed == 1) {
             ClearTexture(accA);
@@ -89,16 +81,7 @@ int main(void) {
         Zoom(&camera);
         Settings(&settings);
 
-        // Boring stuff
-        SetShaderValue(raytracing, timeLoc, &time, SHADER_UNIFORM_FLOAT);
-        SetShaderValue(raytracing, resLocRTX, res, SHADER_UNIFORM_VEC2);
-
-        // Fun stuff :) (camera settings)
-        SetShaderValue(raytracing, flenLoc, &camera.fovy, SHADER_UNIFORM_FLOAT);
-        SetShaderValue(raytracing, camCenLoc, pos, SHADER_UNIFORM_VEC3);
-
-        // Render settings
-        SetShaderValue(raytracing, aaLoc, &settings.aaEnabled, SHADER_UNIFORM_INT);
+        SetRaytracerValues(raytracing, raytracerLocs, raytracerValues);
 
         BeginTextureMode(prevFrame);
             ClearBackground(BLACK);
@@ -121,15 +104,19 @@ int main(void) {
                 DrawInfo(camera, settings, frame);
             EndDrawing();
         } else {
-            SetShaderValue(denoiser, resLocDns, res, SHADER_UNIFORM_VEC2);
-            SetShaderValue(denoiser, changedLoc, &changed, SHADER_UNIFORM_INT);
-            SetShaderValue(denoiser, frameLoc, &frame, SHADER_UNIFORM_INT);
+            DenoiserShaderValues denoiserValues = {
+                .resolution = res,
+                .changed = changed,
+                .frame = frame
+            };
+
+            SetDenoiserValues(denoiser, denoiserLocs, denoiserValues);
 
             BeginTextureMode(useA ? accB : accA);
                 ClearBackground(BLACK);
                 BeginShaderMode(denoiser);
-                    SetShaderValueTexture(denoiser, prevFrLoc, prevFrame.texture);
-                    SetShaderValueTexture(denoiser, accRndLoc, useA ? accA.texture : accB.texture);
+                    SetShaderValueTexture(denoiser, denoiserLocs.prevFrame, prevFrame.texture);
+                    SetShaderValueTexture(denoiser, denoiserLocs.accRender, useA ? accA.texture : accB.texture);
 
                     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), WHITE);
                 EndShaderMode();

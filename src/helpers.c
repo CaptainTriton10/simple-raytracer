@@ -6,6 +6,46 @@
 #define CAMERA_MOVE_SPEED 1.5
 #define CAMERA_ZOOM_SPEED 4
 
+RaytracerShaderLocations GetRaytracerLocations(Shader shader) {
+    RaytracerShaderLocations locs = {
+        .time = GetShaderLocation(shader, "time"),
+        .resolution = GetShaderLocation(shader, "resolution"),
+        .focalLength = GetShaderLocation(shader, "focalLength"),
+        .cameraCenter = GetShaderLocation(shader, "cameraCenter"),
+        .antiAliasing = GetShaderLocation(shader, "aaEnabled")
+    };
+
+    return locs;
+}
+
+void SetRaytracerValues(Shader shader, RaytracerShaderLocations locs, RaytracerShaderValues values) {
+    SetShaderValue(shader, locs.time, &values.time, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(shader, locs.resolution, values.resolution, SHADER_UNIFORM_VEC2);
+
+    SetShaderValue(shader, locs.focalLength, &values.focalLength, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(shader, locs.cameraCenter, values.cameraCenter, SHADER_UNIFORM_VEC3);
+
+    SetShaderValue(shader, locs.antiAliasing, &values.antiAliasing, SHADER_UNIFORM_INT);
+}
+
+DenoiserShaderLocations GetDenoiserLocations(Shader shader) {
+    DenoiserShaderLocations locs = {
+        .resolution = GetShaderLocation(shader, "resolution"),
+        .prevFrame = GetShaderLocation(shader, "prevFrame"),
+        .accRender = GetShaderLocation(shader, "accRender"),
+        .changed = GetShaderLocation(shader, "changed"),
+        .frame = GetShaderLocation(shader, "frame")
+    };
+
+    return locs;
+}
+
+void SetDenoiserValues(Shader shader, DenoiserShaderLocations locs, DenoiserShaderValues values) {
+    SetShaderValue(shader, locs.resolution, values.resolution, SHADER_UNIFORM_VEC2);
+    SetShaderValue(shader, locs.changed, &values.changed, SHADER_UNIFORM_INT);
+    SetShaderValue(shader, locs.frame, &values.frame, SHADER_UNIFORM_INT);
+}
+
 float Clampf(float value, float min, float max) {
     return fmaxf(min, fminf(value, max));
 }
