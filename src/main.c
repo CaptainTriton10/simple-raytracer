@@ -1,6 +1,7 @@
 #include "../include/helpers.h"
 #include "raylib.h"
 #include <math.h>
+#include <stdio.h>
 
 // On Windows, target dedicated GPU with NVIDIA Optimus and AMD PowerXpress/Switchable Graphics
 #ifdef _WIN32
@@ -65,13 +66,23 @@ int main(void) {
 
     int frame = 0;
     while (!WindowShouldClose()) {    // Detect window close button or ESC key
-        float pos[3] = {camera.position.x, camera.position.y, camera.position.z};
         float res[2] = { (float)GetScreenWidth(), (float)GetScreenHeight() };
         float time = GetTime();
 
         int changed = 0;
 
         changed = Movement(&camera) ? 1 : 0;
+
+        float pos[3] = {camera.position.x, camera.position.y, camera.position.z};
+
+        if (changed == 1) {
+            ClearTexture(accA);
+            ClearTexture(accB);
+
+            frame = 0;
+            useA = true;
+        }
+
         Zoom(&camera);
         Settings(&settings);
 
@@ -141,27 +152,3 @@ int main(void) {
 
     return 0;
 }
-
-
-
-
-
-
-
-
-// BeginTextureMode(target);
-//     BeginShaderMode(denoiser);
-//         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), WHITE);
-//     EndShaderMode();
-// EndTextureMode();
-
-// BeginDrawing();
-//     ClearBackground(MAGENTA);
-//     DrawTextureRec(
-//         target.texture,
-//         (Rectangle){ 0, 0, (float)screenWidth, -(float)screenHeight },
-//         (Vector2){ 0, 0 },
-//         WHITE
-//     );
-//     DrawInfo(camera, settings, frame);
-// EndDrawing();

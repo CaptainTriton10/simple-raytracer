@@ -1,4 +1,5 @@
 #include "../include/helpers.h"
+#include "raylib.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -90,5 +91,11 @@ void CopyTexture(RenderTexture source, RenderTexture target, float resolution[2]
             (Vector2){ 0, 0 },
             WHITE
         );
+    EndTextureMode();
+}
+
+void ClearTexture(RenderTexture tex) {
+    BeginTextureMode(tex);
+        ClearBackground(BLACK);
     EndTextureMode();
 }
