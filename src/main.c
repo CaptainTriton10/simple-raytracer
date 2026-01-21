@@ -50,6 +50,7 @@ int main(void) {
     int accRndLoc = GetShaderLocation(denoiser, "accRender");
 
     int changedLoc = GetShaderLocation(denoiser, "changed");
+    int frameLoc = GetShaderLocation(denoiser, "frame");
 
     int timeLoc = GetShaderLocation(raytracing, "time");
     int resLocRTX  = GetShaderLocation(raytracing, "resolution");
@@ -122,6 +123,7 @@ int main(void) {
         } else {
             SetShaderValue(denoiser, resLocDns, res, SHADER_UNIFORM_VEC2);
             SetShaderValue(denoiser, changedLoc, &changed, SHADER_UNIFORM_INT);
+            SetShaderValue(denoiser, frameLoc, &frame, SHADER_UNIFORM_INT);
 
             BeginTextureMode(useA ? accB : accA);
                 ClearBackground(BLACK);
