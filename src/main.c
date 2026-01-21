@@ -21,10 +21,12 @@
 #endif
 
 int main(void) {
-    const float aspectRatio = 2.0f / 1.0f;
+    const float aspectRatio = 16.0f / 9.0f;
 
     const int screenWidth = 1280;
     const int screenHeight = (int)(screenWidth / aspectRatio);
+
+    SetConfigFlags(FLAG_FULLSCREEN_MODE);
 
     InitWindow(screenWidth, screenHeight, "Simple Raytracer");
 
