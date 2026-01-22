@@ -19,7 +19,9 @@
     #endif
 #endif
 
-int main(void) {
+
+
+int main() {
     const float aspectRatio = 16.0f / 9.0f;
 
     const int screenWidth = 1280;
@@ -58,7 +60,7 @@ int main(void) {
         float time = GetTime();
 
         int changed = 0;
-        if (Movement(&camera) || Zoom(&camera)) {
+        if (Movement(&camera) || Zoom(&camera) || Settings(&settings)) {
             changed = 1;
         }
 
@@ -79,8 +81,6 @@ int main(void) {
             frame = 0;
             useA = true;
         }
-
-        Settings(&settings);
 
         SetRaytracerValues(raytracing, raytracerLocs, raytracerValues);
 

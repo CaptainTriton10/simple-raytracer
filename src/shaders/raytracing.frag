@@ -372,7 +372,7 @@ void main() {
         }
 
         pixelColour /= camera.samplesPerPixel;
-        finalColour = vec4(pixelColour, 1.0);
+        finalColour = vec4(LinearToGamma(pixelColour), 1.0);
     } else {
         vec3 rayDirection = CalculateRayDirection(camera, pixelIndex);
         Ray ray = Ray(cameraCenter, rayDirection);

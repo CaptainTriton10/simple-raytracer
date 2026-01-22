@@ -48,7 +48,7 @@ float Clampf(float value, float min, float max);
 bool Movement(Camera *camera);
 bool Zoom(Camera *camera);
 
-void Settings(RenderSettings *settings);
+bool Settings(RenderSettings *settings);
 void DrawInfo(Camera camera, RenderSettings settings, int frame);
 
 void CopyTexture(RenderTexture source, RenderTexture target, float resolution[2]);

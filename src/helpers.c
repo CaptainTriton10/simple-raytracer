@@ -101,7 +101,7 @@ bool Zoom(Camera *camera) {
     return false;
 }
 
-void Settings(RenderSettings *settings) {
+bool Settings(RenderSettings *settings) {
     if (IsKeyPressed(KEY_ONE)) {
         settings->aaEnabled = settings->aaEnabled == 1 ? 0 : 1;
     }
