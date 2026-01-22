@@ -3,7 +3,7 @@
 #define SPHERE 0
 #define NONE -1
 
-#define MAX_OBJECTS 64
+#define MAX_OBJECTS 3
 #define POS_INFINITY 100000000
 
 #define MAX_DEPTH 10
@@ -17,9 +17,14 @@ uniform vec3 cameraCenter;
 
 uniform int aaEnabled;
 
+struct Material {
+    vec3 albedo;
+};
+
 struct HitRecord {
     vec3 pos;
     vec3 normal;
+    Material material;
     float t;
     bool frontFace;
 };
@@ -31,7 +36,8 @@ struct Interval {
 
 struct Hittable {
     int type; // Object type (0 for sphere)
-    vec4 data; // e.g Sphere: xyz = pos, w = radius
+    vec4 data0; // e.g Sphere: xyz = pos, w = radius
+    vec4 data1; // e.g Sphere: xyz = material albedo
     bool isActive;
 };
 
@@ -56,6 +62,7 @@ struct Camera {
 struct Sphere {
     vec3 pos;
     float radius;
+    Material material;
 };
 
 float LengthSquared(vec3 v) {
@@ -111,6 +118,15 @@ vec3 RandomOnHemisphere(vec3 normal, vec2 seed) {
     }
 }
 
+vec3 Reflect(vec3 v, vec3 n) {
+    return v - 2 * dot(v, n) * n;
+}
+
+bool NearZero(vec3 a) {
+    float s = 1e-8;
+    return (abs(a.x) < s) && (abs(a.y) < s) && (abs(a.z) < s);
+}
+
 vec3 At(Ray ray, float t) {
     return ray.origin + ray.direction * t;
 }
@@ -125,6 +141,26 @@ bool IntervalContains(Interval interval, float x) {
 
 bool IntervalSurrounds(Interval interval, float x) {
     return interval.min < x && interval.max > x;
+}
+
+bool LambertianScatter(Material mat, Ray ray, HitRecord rec, inout vec3 attenuation, inout Ray scattered) {
+    vec3 scatterDirection = rec.normal + RandomUnitVec3(gl_FragCoord.xy * (gl_FragCoord.yx * time));
+
+    if (NearZero(scatterDirection)) {
+        scatterDirection = rec.normal;
+    }
+
+    scattered = Ray(rec.pos, scatterDirection);
+    attenuation = mat.albedo;
+
+    return true;
+}
+
+bool MetalScatter(Material mat, Ray ray, HitRecord rec, inout vec3 attenuation, inout Ray scattered) {
+    vec3 reflected = Reflect(ray.direction, rec.normal);
+    scattered = Ray(rec.pos, reflected);
+    attenuation = mat.albedo;
+    return true;
 }
 
 void SetFaceNormal(inout HitRecord rec, Ray ray, vec3 outwardNormal) {
@@ -157,6 +193,7 @@ bool HitSphere(Sphere sphere, Ray ray, Interval rayT, inout HitRecord rec) {
     HitRecord temp;
     temp.t = root;
     temp.pos = At(ray, temp.t);
+    temp.material = sphere.material;
     vec3 outwardNormal = (temp.pos - sphere.pos) / sphere.radius;
 
     SetFaceNormal(temp, ray, outwardNormal);
@@ -168,7 +205,8 @@ bool HitSphere(Sphere sphere, Ray ray, Interval rayT, inout HitRecord rec) {
 
 bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
     if (object.type == SPHERE) {
-        Sphere sphere = Sphere(object.data.xyz, object.data.w);
+        Material mat = Material(object.data1.xyz);
+        Sphere sphere = Sphere(object.data0.xyz, object.data0.w, mat);
 
         return HitSphere(sphere, ray, rayT, rec);
     } else if (object.type == NONE) {
@@ -193,28 +231,42 @@ bool HitWorld(Ray ray, Interval rayT, out HitRecord rec, Hittable objects[MAX_OB
 }
 
 vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
-    vec3 accumulated = vec3(1.0);
+    vec3 attenuationAccum = vec3(1.0);
     Ray currentRay = ray;
 
     for (int i = 0; i < MAX_DEPTH; i++) {
         HitRecord rec;
 
         if (HitWorld(currentRay, Interval(0.0001, POS_INFINITY), rec, objects)) {
-            vec3 direction = rec.normal + RandomUnitVec3(gl_FragCoord.xy * (gl_FragCoord.yx * time));
-            accumulated *= 0.5;
+            Ray scattered;
+            vec3 attenuation;
+            bool didScatter = false;
 
-            currentRay = Ray(rec.pos, direction);
+            didScatter = LambertianScatter(
+                    rec.material,
+                    currentRay,
+                    rec,
+                    attenuation,
+                    scattered
+                );
+
+            if (!didScatter) {
+                return vec3(0.0);
+            }
+
+            attenuationAccum *= attenuation;
+            currentRay = scattered;
         } else {
             vec3 unitDirection = normalize(ray.direction);
             float a = 0.5 * (unitDirection.y + 1.0f);
 
-            vec3 colour = mix(
+            vec3 sky = mix(
                     vec3(1.0, 1.0, 1.0),
                     vec3(0.5, 0.7, 1.0),
                     a
                 );
 
-            return accumulated * colour;
+            return attenuationAccum * sky;
         }
     }
 
@@ -295,15 +347,20 @@ void main() {
 
     Hittable objects[MAX_OBJECTS];
 
+    Material redMat = Material(vec3(0.7, 0.1, 0.1));
+    Material blueMat = Material(vec3(0.1, 0.1, 0.7));
+    Material greenMat = Material(vec3(0.1, 0.7, 0.1));
+    Material whiteMat = Material(vec3(0.95, 0.95, 0.95));
+
     // Create some objects
-    objects[0] = Hittable(SPHERE, vec4(0.0, 0.0, 0.0, 0.5), true);
-    objects[1] = Hittable(SPHERE, vec4(1.0, -0.5, -2.0, 0.5), true);
-    objects[2] = Hittable(SPHERE, vec4(0.0, -10.5, 0.0, 10.0), true);
+    objects[0] = Hittable(SPHERE, vec4(0.0, 0.0, 0.0, 0.5), vec4(redMat.albedo, 0.0), true);
+    objects[1] = Hittable(SPHERE, vec4(1.0, -0.5, -2.0, 0.5), vec4(greenMat.albedo, 0.0), true);
+    objects[2] = Hittable(SPHERE, vec4(0.0, -10.5, 0.0, 10.0), vec4(whiteMat.albedo, 0.0), true);
 
     // Fill the rest as empty
     for (int i = 0; i < MAX_OBJECTS; i++) {
         if (!objects[i].isActive) {
-            objects[i] = Hittable(NONE, vec4(0.0), false);
+            objects[i] = Hittable(NONE, vec4(0.0), vec4(0.0), false);
         }
     }
 
