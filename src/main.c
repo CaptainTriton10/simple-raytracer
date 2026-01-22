@@ -58,7 +58,9 @@ int main(void) {
         float time = GetTime();
 
         int changed = 0;
-        changed = Movement(&camera) ? 1 : 0;
+        if (Movement(&camera) || Zoom(&camera)) {
+            changed = 1;
+        }
 
         float pos[3] = {camera.position.x, camera.position.y, camera.position.z};
 
@@ -78,7 +80,6 @@ int main(void) {
             useA = true;
         }
 
-        Zoom(&camera);
         Settings(&settings);
 
         SetRaytracerValues(raytracing, raytracerLocs, raytracerValues);

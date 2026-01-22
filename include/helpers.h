@@ -46,7 +46,7 @@ void SetDenoiserValues(Shader shader, DenoiserShaderLocations locs, DenoiserShad
 float Clampf(float value, float min, float max);
 
 bool Movement(Camera *camera);
-void Zoom(Camera *camera);
+bool Zoom(Camera *camera);
 
 void Settings(RenderSettings *settings);
 void DrawInfo(Camera camera, RenderSettings settings, int frame);

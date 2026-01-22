@@ -87,11 +87,18 @@ bool Movement(Camera *camera) {
     return changed;
 }
 
-void Zoom(Camera *camera) {
+bool Zoom(Camera *camera) {
     float zoomFactor = CAMERA_ZOOM_SPEED * GetFrameTime();
     float scroll = 1 + zoomFactor * GetMouseWheelMove();
 
     camera->fovy = Clampf(camera->fovy * scroll, 0.1, 30);
+
+    // If the camera was zoomed this frame
+    if (scroll != 1.0) {
+        return true;
+    }
+
+    return false;
 }
 
 void Settings(RenderSettings *settings) {
