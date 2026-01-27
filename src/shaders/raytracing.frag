@@ -6,7 +6,7 @@
 #define MAX_OBJECTS 3
 #define POS_INFINITY 100000000
 
-#define MAX_DEPTH 10
+#define MAX_DEPTH 5
 
 out vec4 finalColour;
 uniform vec2 resolution;

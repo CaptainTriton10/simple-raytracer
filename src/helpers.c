@@ -104,7 +104,10 @@ bool Zoom(Camera *camera) {
 bool Settings(RenderSettings *settings) {
     if (IsKeyPressed(KEY_ONE)) {
         settings->aaEnabled = settings->aaEnabled == 1 ? 0 : 1;
+        return true;
     }
+
+    return false;
 }
 
 void DrawInfo(Camera camera, RenderSettings settings, int frame) {

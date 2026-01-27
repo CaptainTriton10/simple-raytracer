@@ -1,6 +1,6 @@
 #version 330
 
-#define DENOISE_MAX_FRAMES 200
+#define DENOISE_MAX_FRAMES -1
 
 uniform vec2 resolution;
 
@@ -20,7 +20,7 @@ void main() {
 
     float factor = 1.0 / float(frame + 1.0);
 
-    if (frame >= DENOISE_MAX_FRAMES) {
+    if (frame >= DENOISE_MAX_FRAMES && DENOISE_MAX_FRAMES != -1) {
         factor = 0.0;
     }
 

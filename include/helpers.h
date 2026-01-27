@@ -5,6 +5,8 @@
 
 typedef struct RenderSettings {
     int aaEnabled;
+    int width;
+    int height;
 } RenderSettings;
 
 typedef struct RaytracerShaderValues {

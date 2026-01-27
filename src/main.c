@@ -22,9 +22,14 @@
 
 
 int main() {
+    RenderSettings settings = {
+        .aaEnabled = 0,
+        .width = 1920
+    };
+
     const float aspectRatio = 16.0f / 9.0f;
 
-    const int screenWidth = 1280;
+    const int screenWidth = settings.width;
     const int screenHeight = (int)(screenWidth / aspectRatio);
 
     SetConfigFlags(FLAG_FULLSCREEN_MODE);
@@ -36,11 +41,7 @@ int main() {
         .fovy = 2.0f
     };
 
-    RenderSettings settings = {
-        .aaEnabled = false
-    };
-
-    SetTargetFPS(100);
+    SetTargetFPS(1000);
 
     Shader raytracing = LoadShader(0, "src/shaders/raytracing.frag");
     Shader denoiser = LoadShader(0, "src/shaders/denoise.frag");
