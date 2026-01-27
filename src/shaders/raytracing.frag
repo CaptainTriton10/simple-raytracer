@@ -23,6 +23,7 @@ uniform int aaEnabled;
 struct Material {
     int type;
     vec3 albedo;
+    float roughness;
 };
 
 struct HitRecord {
@@ -42,14 +43,16 @@ struct Interval {
 
 Hittable Data Types:
 Sphere:
-data0   xyz = pos, w = radius
-data1   x = scatter type, yzw = albedo
+    data0   xyz = pos, w = radius
+    data1   x = scatter type, yzw = albedo
+    data2   x = roughness
 
 */
 struct Hittable {
     int type;
     vec4 data0;
     vec4 data1;
+    vec4 data2;
     bool isActive;
 };
 
@@ -170,9 +173,11 @@ bool LambertianScatter(Material mat, Ray ray, HitRecord rec, inout vec3 attenuat
 
 bool MetalScatter(Material mat, Ray ray, HitRecord rec, inout vec3 attenuation, inout Ray scattered) {
     vec3 reflected = Reflect(ray.direction, rec.normal);
+    reflected = normalize(reflected) + (mat.roughness * RandomUnitVec3(gl_FragCoord.xy * (gl_FragCoord.yx * time)));
     scattered = Ray(rec.pos, reflected);
     attenuation = mat.albedo;
-    return true;
+
+    return dot(scattered.direction, rec.normal) > 0;
 }
 
 void SetFaceNormal(inout HitRecord rec, Ray ray, vec3 outwardNormal) {
@@ -217,7 +222,7 @@ bool HitSphere(Sphere sphere, Ray ray, Interval rayT, inout HitRecord rec) {
 
 bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
     if (object.type == SPHERE) {
-        Material mat = Material(int(object.data1.x), object.data1.yzw);
+        Material mat = Material(int(object.data1.x), object.data1.yzw, object.data2.x);
         Sphere sphere = Sphere(object.data0.xyz, object.data0.w, mat);
 
         return HitSphere(sphere, ray, rayT, rec);
@@ -369,21 +374,21 @@ void main() {
 
     Hittable objects[MAX_OBJECTS];
 
-    Material redMat = Material(1, vec3(0.7, 0.1, 0.1));
-    Material blueMat = Material(1, vec3(0.1, 0.1, 0.7));
-    Material greenMat = Material(0, vec3(0.1, 0.7, 0.1));
-    Material whiteMat = Material(0, vec3(0.95, 0.95, 0.95));
-    Material greyMat = Material(0, vec3(0.1, 0.1, 0.15));
+    Material redMat = Material(1, vec3(0.7, 0.1, 0.1), 0.4);
+    Material blueMat = Material(1, vec3(0.1, 0.1, 0.7), 0.04);
+    Material greenMat = Material(0, vec3(0.1, 0.7, 0.1), 0.0);
+    Material whiteMat = Material(0, vec3(0.95, 0.95, 0.95), 0.0);
+    Material greyMat = Material(0, vec3(0.1, 0.1, 0.15), 0.0);
 
     // Create some objects
-    objects[0] = Hittable(SPHERE, vec4(0.0, 0.0, 0.0, 0.5), vec4(blueMat.type, blueMat.albedo), true);
-    objects[1] = Hittable(SPHERE, vec4(1.0, 0.0, 1.25, 0.5), vec4(greenMat.type, greenMat.albedo), true);
-    objects[2] = Hittable(SPHERE, vec4(0.0, -10.5, 0.0, 10.0), vec4(greyMat.type, greyMat.albedo), true);
+    objects[0] = Hittable(SPHERE, vec4(0.0, 0.0, 0.0, 0.5), vec4(blueMat.type, blueMat.albedo), vec4(blueMat.roughness), true);
+    objects[1] = Hittable(SPHERE, vec4(1.0, 0.0, 1.25, 0.5), vec4(greenMat.type, greenMat.albedo), vec4(greenMat.roughness), true);
+    objects[2] = Hittable(SPHERE, vec4(0.0, -10.5, 0.0, 10.0), vec4(greyMat.type, greyMat.albedo), vec4(greyMat.roughness), true);
 
     // Fill the rest as empty
     for (int i = 0; i < MAX_OBJECTS; i++) {
         if (!objects[i].isActive) {
-            objects[i] = Hittable(NONE, vec4(0.0), vec4(0.0), false);
+            objects[i] = Hittable(NONE, vec4(0.0), vec4(0.0), vec4(0.0), false);
         }
     }
 

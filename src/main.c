@@ -19,8 +19,6 @@
     #endif
 #endif
 
-
-
 int main() {
     RenderSettings settings = {
         .aaEnabled = 0,
@@ -41,7 +39,7 @@ int main() {
         .fovy = 2.0f
     };
 
-    SetTargetFPS(1000);
+    SetTargetFPS(100);
 
     Shader raytracing = LoadShader(0, "src/shaders/raytracing.frag");
     Shader denoiser = LoadShader(0, "src/shaders/denoise.frag");
