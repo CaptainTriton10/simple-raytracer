@@ -3,6 +3,9 @@
 #define SPHERE 0
 #define NONE -1
 
+#define LAMBERTIAN 0
+#define METAL 1
+
 #define MAX_OBJECTS 3
 #define POS_INFINITY 100000000
 
@@ -18,6 +21,7 @@ uniform vec3 cameraCenter;
 uniform int aaEnabled;
 
 struct Material {
+    int type;
     vec3 albedo;
 };
 
@@ -34,6 +38,19 @@ struct Interval {
     float max;
 };
 
+/*
+
+Hittable Data Types:
+Sphere:
+data0   xyz = pos, w = radius
+data1   x = scatter type, yzw = albedo
+
+for now I am using:
+data1   xyz = albedo, x = scatter type
+
+I must remember to update this in the future
+
+*/
 struct Hittable {
     int type; // Object type (0 for sphere)
     vec4 data0; // e.g Sphere: xyz = pos, w = radius
@@ -205,7 +222,7 @@ bool HitSphere(Sphere sphere, Ray ray, Interval rayT, inout HitRecord rec) {
 
 bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
     if (object.type == SPHERE) {
-        Material mat = Material(object.data1.xyz);
+        Material mat = Material(int(object.data1.w), object.data1.xyz);
         Sphere sphere = Sphere(object.data0.xyz, object.data0.w, mat);
 
         return HitSphere(sphere, ray, rayT, rec);
@@ -242,13 +259,23 @@ vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
             vec3 attenuation;
             bool didScatter = false;
 
-            didScatter = LambertianScatter(
-                    rec.material,
-                    currentRay,
-                    rec,
-                    attenuation,
-                    scattered
-                );
+            if (rec.material.type == LAMBERTIAN) {
+                didScatter = LambertianScatter(
+                        rec.material,
+                        currentRay,
+                        rec,
+                        attenuation,
+                        scattered
+                    );
+            } else if (rec.material.type == METAL) {
+                didScatter = MetalScatter(
+                        rec.material,
+                        currentRay,
+                        rec,
+                        attenuation,
+                        scattered
+                    );
+            }
 
             if (!didScatter) {
                 return vec3(0.0);
@@ -347,15 +374,16 @@ void main() {
 
     Hittable objects[MAX_OBJECTS];
 
-    Material redMat = Material(vec3(0.7, 0.1, 0.1));
-    Material blueMat = Material(vec3(0.1, 0.1, 0.7));
-    Material greenMat = Material(vec3(0.1, 0.7, 0.1));
-    Material whiteMat = Material(vec3(0.95, 0.95, 0.95));
+    Material redMat = Material(1, vec3(0.7, 0.1, 0.1));
+    Material blueMat = Material(1, vec3(0.1, 0.1, 0.7));
+    Material greenMat = Material(0, vec3(0.1, 0.7, 0.1));
+    Material whiteMat = Material(0, vec3(0.95, 0.95, 0.95));
+    Material greyMat = Material(0, vec3(0.1, 0.1, 0.15));
 
     // Create some objects
-    objects[0] = Hittable(SPHERE, vec4(0.0, 0.0, 0.0, 0.5), vec4(redMat.albedo, 0.0), true);
-    objects[1] = Hittable(SPHERE, vec4(1.0, -0.5, -2.0, 0.5), vec4(greenMat.albedo, 0.0), true);
-    objects[2] = Hittable(SPHERE, vec4(0.0, -10.5, 0.0, 10.0), vec4(whiteMat.albedo, 0.0), true);
+    objects[0] = Hittable(SPHERE, vec4(0.0, 0.0, 0.0, 0.5), vec4(blueMat.albedo, blueMat.type), true);
+    objects[1] = Hittable(SPHERE, vec4(1.0, 0.0, 1.25, 0.5), vec4(greenMat.albedo, greenMat.type), true);
+    objects[2] = Hittable(SPHERE, vec4(0.0, -10.5, 0.0, 10.0), vec4(greyMat.albedo, greyMat.type), true);
 
     // Fill the rest as empty
     for (int i = 0; i < MAX_OBJECTS; i++) {
