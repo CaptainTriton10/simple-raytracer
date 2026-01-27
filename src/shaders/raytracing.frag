@@ -5,8 +5,9 @@
 
 #define LAMBERTIAN 0
 #define METAL 1
+#define DIELECTRIC 2
 
-#define MAX_OBJECTS 3
+#define MAX_OBJECTS 4
 #define POS_INFINITY 100000000
 
 #define MAX_DEPTH 5
@@ -24,6 +25,7 @@ struct Material {
     int type;
     vec3 albedo;
     float roughness;
+    float ior;
 };
 
 struct HitRecord {
@@ -45,7 +47,7 @@ Hittable Data Types:
 Sphere:
     data0   xyz = pos, w = radius
     data1   x = scatter type, yzw = albedo
-    data2   x = roughness
+    data2   x = roughness, y = ior
 
 */
 struct Hittable {
@@ -137,6 +139,21 @@ vec3 Reflect(vec3 v, vec3 n) {
     return v - 2 * dot(v, n) * n;
 }
 
+vec3 Refract(vec3 uv, vec3 n, float etaIOverEtaT) {
+    float cosTheta = min(dot(-uv, n), 1.0);
+    vec3 rOutPerp = etaIOverEtaT * (uv + cosTheta * n);
+    vec3 rOutParallel = -sqrt(abs(1.0 - LengthSquared(rOutPerp))) * n;
+
+    return rOutPerp + rOutParallel;
+}
+
+float Reflectance(float cosine, float ior) {
+    float r0 = (1.0 - ior) / (1.0 + ior);
+    r0 = r0 * r0;
+
+    return r0 + (1.0 - r0) * pow((1 - cosine), 5);
+}
+
 bool NearZero(vec3 a) {
     float s = 1e-8;
     return (abs(a.x) < s) && (abs(a.y) < s) && (abs(a.z) < s);
@@ -178,6 +195,27 @@ bool MetalScatter(Material mat, Ray ray, HitRecord rec, inout vec3 attenuation, 
     attenuation = mat.albedo;
 
     return dot(scattered.direction, rec.normal) > 0;
+}
+
+bool DielectricScatter(Material mat, Ray ray, HitRecord rec, inout vec3 attenuation, inout Ray scattered) {
+    attenuation = vec3(1.0, 1.0, 1.0);
+    float ri = rec.frontFace ? (1.0 / mat.ior) : mat.ior;
+
+    vec3 unitDirection = normalize(ray.direction);
+    float cosTheta = min(dot(-unitDirection, rec.normal), 1.0);
+    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+
+    bool cannotRefract = mat.ior * sinTheta > 1.0;
+    vec3 direction = vec3(0.0);
+
+    if (cannotRefract || Reflectance(cosTheta, mat.ior) > Random(gl_FragCoord.xy * (gl_FragCoord.yx * time))) {
+        direction = Reflect(unitDirection, rec.normal);
+    } else {
+        direction = Refract(unitDirection, rec.normal, mat.ior);
+    }
+
+    scattered = Ray(rec.pos, direction);
+    return true;
 }
 
 void SetFaceNormal(inout HitRecord rec, Ray ray, vec3 outwardNormal) {
@@ -222,7 +260,12 @@ bool HitSphere(Sphere sphere, Ray ray, Interval rayT, inout HitRecord rec) {
 
 bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
     if (object.type == SPHERE) {
-        Material mat = Material(int(object.data1.x), object.data1.yzw, object.data2.x);
+        Material mat = Material(
+                int(object.data1.x), // Material type
+                object.data1.yzw, // Albedo
+                object.data2.x, // Roughness
+                object.data2.y // IOR
+            );
         Sphere sphere = Sphere(object.data0.xyz, object.data0.w, mat);
 
         return HitSphere(sphere, ray, rayT, rec);
@@ -275,6 +318,16 @@ vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
                         attenuation,
                         scattered
                     );
+            } else if (rec.material.type == DIELECTRIC) {
+                didScatter = DielectricScatter(
+                        rec.material,
+                        currentRay,
+                        rec,
+                        attenuation,
+                        scattered
+                    );
+            } else {
+                didScatter = false;
             }
 
             if (!didScatter) {
@@ -374,16 +427,17 @@ void main() {
 
     Hittable objects[MAX_OBJECTS];
 
-    Material redMat = Material(1, vec3(0.7, 0.1, 0.1), 0.4);
-    Material blueMat = Material(1, vec3(0.1, 0.1, 0.7), 0.04);
-    Material greenMat = Material(0, vec3(0.1, 0.7, 0.1), 0.0);
-    Material whiteMat = Material(0, vec3(0.95, 0.95, 0.95), 0.0);
-    Material greyMat = Material(0, vec3(0.1, 0.1, 0.15), 0.0);
+    Material blueMat = Material(LAMBERTIAN, vec3(0.1, 0.1, 0.7), 0.04, 0.0);
+    Material greenMat = Material(LAMBERTIAN, vec3(0.1, 0.7, 0.1), 0.0, 0.0);
+    Material greyMat = Material(LAMBERTIAN, vec3(0.1, 0.1, 0.15), 0.0, 0.0);
+    Material metalMat = Material(METAL, vec3(0.1, 0.6, 0.15), 0.1, 0.0);
+    Material glassMat = Material(DIELECTRIC, vec3(0.0), 0.0, 1.0 / 1.5);
 
     // Create some objects
-    objects[0] = Hittable(SPHERE, vec4(0.0, 0.0, 0.0, 0.5), vec4(blueMat.type, blueMat.albedo), vec4(blueMat.roughness), true);
-    objects[1] = Hittable(SPHERE, vec4(1.0, 0.0, 1.25, 0.5), vec4(greenMat.type, greenMat.albedo), vec4(greenMat.roughness), true);
-    objects[2] = Hittable(SPHERE, vec4(0.0, -10.5, 0.0, 10.0), vec4(greyMat.type, greyMat.albedo), vec4(greyMat.roughness), true);
+    objects[0] = Hittable(SPHERE, vec4(0.5, 0.0, -1.0, 0.5), vec4(blueMat.type, blueMat.albedo), vec4(blueMat.roughness, blueMat.ior, 0.0, 0.0), true);
+    objects[3] = Hittable(SPHERE, vec4(-1.25, 0.0, 0.0, 0.5), vec4(metalMat.type, metalMat.albedo), vec4(metalMat.roughness, blueMat.ior, 0.0, 0.0), true);
+    objects[1] = Hittable(SPHERE, vec4(0.0, 0.0, 0.0, 0.5), vec4(glassMat.type, glassMat.albedo), vec4(glassMat.roughness, glassMat.ior, 0.0, 0.0), true);
+    objects[2] = Hittable(SPHERE, vec4(0.0, -100.5, 0.0, 100.0), vec4(greyMat.type, greyMat.albedo), vec4(greyMat.roughness, greyMat.ior, 0.0, 0.0), true);
 
     // Fill the rest as empty
     for (int i = 0; i < MAX_OBJECTS; i++) {

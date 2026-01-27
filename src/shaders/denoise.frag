@@ -24,7 +24,7 @@ void main() {
         factor = 0.0;
     }
 
-    if (changed == 0) {
+    if (changed == 0 || DENOISE_MAX_FRAMES == -2) {
         finalColour = vec4(mix(accTex, prevTex, factor), 1.0);
     } else {
         finalColour = vec4(prevTex, 1.0);
