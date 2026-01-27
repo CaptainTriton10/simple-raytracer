@@ -2,3 +2,4 @@
 /packages/
 /releases/
 .cache
+.zed
