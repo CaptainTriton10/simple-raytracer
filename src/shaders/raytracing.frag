@@ -45,16 +45,11 @@ Sphere:
 data0   xyz = pos, w = radius
 data1   x = scatter type, yzw = albedo
 
-for now I am using:
-data1   xyz = albedo, x = scatter type
-
-I must remember to update this in the future
-
 */
 struct Hittable {
-    int type; // Object type (0 for sphere)
-    vec4 data0; // e.g Sphere: xyz = pos, w = radius
-    vec4 data1; // e.g Sphere: xyz = material albedo
+    int type;
+    vec4 data0;
+    vec4 data1;
     bool isActive;
 };
 
@@ -222,7 +217,7 @@ bool HitSphere(Sphere sphere, Ray ray, Interval rayT, inout HitRecord rec) {
 
 bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
     if (object.type == SPHERE) {
-        Material mat = Material(int(object.data1.w), object.data1.xyz);
+        Material mat = Material(int(object.data1.x), object.data1.yzw);
         Sphere sphere = Sphere(object.data0.xyz, object.data0.w, mat);
 
         return HitSphere(sphere, ray, rayT, rec);
@@ -381,9 +376,9 @@ void main() {
     Material greyMat = Material(0, vec3(0.1, 0.1, 0.15));
 
     // Create some objects
-    objects[0] = Hittable(SPHERE, vec4(0.0, 0.0, 0.0, 0.5), vec4(blueMat.albedo, blueMat.type), true);
-    objects[1] = Hittable(SPHERE, vec4(1.0, 0.0, 1.25, 0.5), vec4(greenMat.albedo, greenMat.type), true);
-    objects[2] = Hittable(SPHERE, vec4(0.0, -10.5, 0.0, 10.0), vec4(greyMat.albedo, greyMat.type), true);
+    objects[0] = Hittable(SPHERE, vec4(0.0, 0.0, 0.0, 0.5), vec4(blueMat.type, blueMat.albedo), true);
+    objects[1] = Hittable(SPHERE, vec4(1.0, 0.0, 1.25, 0.5), vec4(greenMat.type, greenMat.albedo), true);
+    objects[2] = Hittable(SPHERE, vec4(0.0, -10.5, 0.0, 10.0), vec4(greyMat.type, greyMat.albedo), true);
 
     // Fill the rest as empty
     for (int i = 0; i < MAX_OBJECTS; i++) {
