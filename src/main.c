@@ -1,6 +1,10 @@
 #include "../include/helpers.h"
 #include "raylib.h"
-#include <math.h>
+#include <stddef.h>
+#include <stdlib.h>
+
+#define MAX_OBJECTS 4
+#define DATA_WIDTH 4
 
 // On Windows, target dedicated GPU with NVIDIA Optimus and AMD PowerXpress/Switchable Graphics
 #ifdef _WIN32
@@ -18,6 +22,70 @@
     }
     #endif
 #endif
+
+/*
+ * Sphere Data Packing:
+ * Sphere 1 - width = 4
+ *      (0, 0):
+ *          r = type
+ *      (1, 0):
+ *          rgb = position
+ *          a = radius
+ *      (2, 0):
+ *          r = scatter type
+ *          gba = albedo
+ *      (3, 0):
+ *          r = roughness
+ *          g = ior
+ */
+
+Texture2D CreateSphereData(Sphere spheres[], size_t len) {
+    size_t dataSize = len * DATA_WIDTH * 4;
+    float *data = malloc(dataSize * sizeof(float));
+
+    for (int i = 0; i < len; i++) {
+        int base = i * DATA_WIDTH * 4;
+
+        // (0, 0)
+        data[base + 0] = 0; // Sphere type
+        data[base + 1] = 0.0f; // Empty (unused)
+        data[base + 2] = 0.0f;
+        data[base + 3] = 0.0f;
+
+        // (1, 0)
+        data[base + 4] = spheres[i].pos[0];
+        data[base + 5] = spheres[i].pos[1];
+        data[base + 6] = spheres[i].pos[2];
+        data[base + 7] = spheres[i].radius;
+
+        // (2, 0)
+        data[base + 8] = spheres[i].material.type;
+        data[base + 9] = spheres[i].material.albedo[0];
+        data[base + 10] = spheres[i].material.albedo[1];
+        data[base + 11] = spheres[i].material.albedo[2];
+
+        // (3, 0)
+        data[base + 12] = spheres[i].material.roughness;
+        data[base + 13] = spheres[i].material.ior;
+        data[base + 14] = 0.0f;
+        data[base + 15] = 0.0f;
+    }
+
+    Image dataImage = {
+        .data = data,
+        .width = DATA_WIDTH,
+        .height = len,
+        .mipmaps = 1,
+        .format = PIXELFORMAT_UNCOMPRESSED_R32G32B32A32
+    };
+
+    Texture2D dataTexture = LoadTextureFromImage(dataImage);
+
+    SetTextureFilter(dataTexture, TEXTURE_FILTER_POINT);
+    SetTextureWrap(dataTexture, TEXTURE_WRAP_CLAMP);
+
+    return dataTexture;
+}
 
 int main() {
     RenderSettings settings = {
@@ -40,6 +108,56 @@ int main() {
     };
 
     SetTargetFPS(100);
+
+    float pos1[3] = {0.0f, 0.0f, 0.0f};
+    float pos2[3] = {0.0f, -100.5f, 0.0f};
+    float pos3[3] = {0.5, 0.0f, -1.5f};
+
+    float colour1[3] = {0.5f, 1.0f, 0.5f};
+    float colour2[3] = {0.1f, 0.1f, 0.15f};
+    float colour3[3] = {0.6f, 0.1f, 0.1f};
+
+    ShaderMaterial mat1 = {
+        .type = 2,
+        .albedo = colour1,
+        .roughness = 0.0f,
+        .ior = 1.0f / 1.5f
+    };
+
+    ShaderMaterial mat2 = {
+        .type = 0,
+        .albedo = colour2,
+        .roughness = 0.0f,
+        .ior = 0.0f
+    };
+
+    ShaderMaterial mat3 = {
+        .type = 0,
+        .albedo = colour3,
+        .roughness = 0.0f,
+        .ior = 0.0f
+    };
+
+    Sphere spheres[3] = {
+        {
+            .pos = pos1,
+            .radius = 0.5f,
+            .material = mat1
+        },
+        {
+            .pos = pos2,
+            .radius = 100.0f,
+            .material = mat2
+        },
+        {
+            .pos = pos3,
+            .radius = 0.5f,
+            .material = mat3
+        }
+    };
+
+    size_t dataSize = sizeof(spheres) / sizeof(spheres[0]);
+    Texture2D data = CreateSphereData(spheres, dataSize);
 
     Shader raytracing = LoadShader(0, "src/shaders/raytracing.frag");
     Shader denoiser = LoadShader(0, "src/shaders/denoise.frag");
@@ -68,6 +186,7 @@ int main() {
         RaytracerShaderValues raytracerValues = {
             .time = time,
             .resolution = res,
+            .dataSize = dataSize,
             .focalLength = camera.fovy,
             .cameraCenter = pos,
             .antiAliasing = settings.aaEnabled
@@ -83,9 +202,12 @@ int main() {
 
         SetRaytracerValues(raytracing, raytracerLocs, raytracerValues);
 
+        int dataLoc = GetShaderLocation(raytracing, "data");
+
         BeginTextureMode(prevFrame);
             ClearBackground(BLACK);
             BeginShaderMode(raytracing);
+                SetShaderValueTexture(raytracing, dataLoc, data);   // The data must be loaded here
                 DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), WHITE);
             EndShaderMode();
         EndTextureMode();

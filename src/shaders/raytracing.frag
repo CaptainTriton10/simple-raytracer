@@ -16,6 +16,9 @@ out vec4 finalColour;
 uniform vec2 resolution;
 uniform float time;
 
+uniform sampler2D data;
+uniform int dataSize;
+
 uniform float focalLength;
 uniform vec3 cameraCenter;
 
@@ -415,6 +418,19 @@ vec3 LinearToGamma(vec3 colour) {
     return result;
 }
 
+Hittable GetHittable(int i) {
+    Hittable object;
+
+    object.type = int(texelFetch(data, ivec2(0, i), 0).x);
+    object.isActive = true;
+
+    object.data0 = texelFetch(data, ivec2(1, i), 0);
+    object.data1 = texelFetch(data, ivec2(2, i), 0);
+    object.data2 = vec4(texelFetch(data, ivec2(3, i), 0).xy, 0.0, 0.0);
+
+    return object;
+}
+
 void main() {
     vec2 pixelIndex = gl_FragCoord.xy - vec2(0.5);
 
@@ -427,17 +443,9 @@ void main() {
 
     Hittable objects[MAX_OBJECTS];
 
-    Material blueMat = Material(LAMBERTIAN, vec3(0.1, 0.1, 0.7), 0.04, 0.0);
-    Material greenMat = Material(LAMBERTIAN, vec3(0.1, 0.7, 0.1), 0.0, 0.0);
-    Material greyMat = Material(LAMBERTIAN, vec3(0.1, 0.1, 0.15), 0.0, 0.0);
-    Material metalMat = Material(METAL, vec3(0.1, 0.6, 0.15), 0.1, 0.0);
-    Material glassMat = Material(DIELECTRIC, vec3(0.0), 0.0, 1.0 / 1.5);
-
-    // Create some objects
-    objects[0] = Hittable(SPHERE, vec4(0.5, 0.0, -1.0, 0.5), vec4(blueMat.type, blueMat.albedo), vec4(blueMat.roughness, blueMat.ior, 0.0, 0.0), true);
-    objects[3] = Hittable(SPHERE, vec4(-1.25, 0.0, 0.0, 0.5), vec4(metalMat.type, metalMat.albedo), vec4(metalMat.roughness, blueMat.ior, 0.0, 0.0), true);
-    objects[1] = Hittable(SPHERE, vec4(0.0, 0.0, 0.0, 0.5), vec4(glassMat.type, glassMat.albedo), vec4(glassMat.roughness, glassMat.ior, 0.0, 0.0), true);
-    objects[2] = Hittable(SPHERE, vec4(0.0, -100.5, 0.0, 100.0), vec4(greyMat.type, greyMat.albedo), vec4(greyMat.roughness, greyMat.ior, 0.0, 0.0), true);
+    for (int i = 0; i < dataSize; i++) {
+        objects[i] = GetHittable(i);
+    }
 
     // Fill the rest as empty
     for (int i = 0; i < MAX_OBJECTS; i++) {

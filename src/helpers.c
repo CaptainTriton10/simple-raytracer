@@ -12,7 +12,8 @@ RaytracerShaderLocations GetRaytracerLocations(Shader shader) {
         .resolution = GetShaderLocation(shader, "resolution"),
         .focalLength = GetShaderLocation(shader, "focalLength"),
         .cameraCenter = GetShaderLocation(shader, "cameraCenter"),
-        .antiAliasing = GetShaderLocation(shader, "aaEnabled")
+        .antiAliasing = GetShaderLocation(shader, "aaEnabled"),
+        .dataSize = GetShaderLocation(shader, "dataSize")
     };
 
     return locs;
@@ -21,6 +22,8 @@ RaytracerShaderLocations GetRaytracerLocations(Shader shader) {
 void SetRaytracerValues(Shader shader, RaytracerShaderLocations locs, RaytracerShaderValues values) {
     SetShaderValue(shader, locs.time, &values.time, SHADER_UNIFORM_FLOAT);
     SetShaderValue(shader, locs.resolution, values.resolution, SHADER_UNIFORM_VEC2);
+
+    SetShaderValue(shader, locs.dataSize, &values.dataSize, SHADER_UNIFORM_INT);
 
     SetShaderValue(shader, locs.focalLength, &values.focalLength, SHADER_UNIFORM_FLOAT);
     SetShaderValue(shader, locs.cameraCenter, values.cameraCenter, SHADER_UNIFORM_VEC3);

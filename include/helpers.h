@@ -2,6 +2,20 @@
 #define HELPERS_H
 
 #include "raylib.h"
+#include <stddef.h>
+
+typedef struct ShaderMaterial {
+    int type;
+    float *albedo;
+    float roughness;
+    float ior;
+} ShaderMaterial;
+
+typedef struct Sphere {
+    float *pos;
+    float radius;
+    ShaderMaterial material;
+} Sphere;
 
 typedef struct RenderSettings {
     int aaEnabled;
@@ -15,6 +29,7 @@ typedef struct RaytracerShaderValues {
     float focalLength;
     float *cameraCenter;
     int antiAliasing;
+    int dataSize;
 } RaytracerShaderValues;
 
 typedef struct RaytracerShaderLocations {
@@ -23,6 +38,7 @@ typedef struct RaytracerShaderLocations {
     int focalLength;
     int cameraCenter;
     int antiAliasing;
+    int dataSize;
 } RaytracerShaderLocations;
 
 typedef struct DenoiserShaderValues {
