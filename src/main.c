@@ -82,8 +82,6 @@ Texture2D CreateSphereData(Sphere spheres[], size_t len) {
         .format = PIXELFORMAT_UNCOMPRESSED_R32G32B32A32
     };
 
-    ExportImage(dataImage, "asdf.png");
-
     Texture2D dataTexture = LoadTextureFromImage(dataImage);
 
     SetTextureFilter(dataTexture, TEXTURE_FILTER_POINT);
