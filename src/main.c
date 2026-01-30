@@ -101,22 +101,9 @@ Scene ParseSceneConfig(const char *filename) {
 
     // Get objects and materials
     toml_datum_t objectsT = GetConfigParam(result, "data", "objects", TOML_ARRAY);
-    toml_datum_t materialsT = GetConfigParam(result, "data", "materials", TOML_ARRAY);
-
-    const size_t matCount = materialsT.u.arr.size;
-    char *matNames[matCount];
 
     const size_t objCount = objectsT.u.arr.size;
     char *objNames[objCount];
-
-    // Get the names of all the materials
-    for (int i = 0; i < matCount; i++) {    // Loop over each name
-        if (materialsT.u.arr.elem[i].type == TOML_STRING){
-            matNames[i] = _strdup(materialsT.u.arr.elem[i].u.s);
-        } else {
-            error("Material name is not a string.");
-        }
-    }
 
     Sphere *objects = malloc(objCount * sizeof(Sphere));
 
@@ -137,10 +124,6 @@ Scene ParseSceneConfig(const char *filename) {
     };
 
     toml_free(result);
-
-    for (int i = 0; i < matCount; i++) {
-        free(matNames[i]);
-    }
 
     for (int i = 0; i < objCount; i++) {
         free(objNames[i]);
