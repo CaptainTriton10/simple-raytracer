@@ -1,7 +1,10 @@
 #include "../include/helpers.h"
 #include "raylib.h"
+#include "../include/tomlc17.h"
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define MAX_OBJECTS 4
 #define DATA_WIDTH 4
@@ -79,6 +82,8 @@ Texture2D CreateSphereData(Sphere spheres[], size_t len) {
         .format = PIXELFORMAT_UNCOMPRESSED_R32G32B32A32
     };
 
+    ExportImage(dataImage, "asdf.png");
+
     Texture2D dataTexture = LoadTextureFromImage(dataImage);
 
     SetTextureFilter(dataTexture, TEXTURE_FILTER_POINT);
@@ -87,7 +92,66 @@ Texture2D CreateSphereData(Sphere spheres[], size_t len) {
     return dataTexture;
 }
 
+Scene ParseSceneConfig(const char *filename) {
+    toml_result_t result = toml_parse_file_ex(filename);
+
+    if (!result.ok) {
+        error("Config parse error.");
+    }
+
+    // Get objects and materials
+    toml_datum_t objectsT = GetConfigParam(result, "data", "objects", TOML_ARRAY);
+    toml_datum_t materialsT = GetConfigParam(result, "data", "materials", TOML_ARRAY);
+
+    const size_t matCount = materialsT.u.arr.size;
+    char *matNames[matCount];
+
+    const size_t objCount = objectsT.u.arr.size;
+    char *objNames[objCount];
+
+    // Get the names of all the materials
+    for (int i = 0; i < matCount; i++) {    // Loop over each name
+        if (materialsT.u.arr.elem[i].type == TOML_STRING){
+            matNames[i] = _strdup(materialsT.u.arr.elem[i].u.s);
+        } else {
+            error("Material name is not a string.");
+        }
+    }
+
+    Sphere *objects = malloc(objCount * sizeof(Sphere));
+
+    // Get the names of all the objects
+    for (int i = 0; i < objCount; i++) {
+        if (objectsT.u.arr.elem[i].type == TOML_STRING){
+            objNames[i] = _strdup(objectsT.u.arr.elem[i].u.s);
+
+            objects[i] = GetObjectParams(result, objNames[i]);
+        } else {
+            error("Object name is not a string.");
+        }
+    }
+
+    Scene scene = {
+        .objCount = objCount,
+        .objects = objects
+    };
+
+    toml_free(result);
+
+    for (int i = 0; i < matCount; i++) {
+        free(matNames[i]);
+    }
+
+    for (int i = 0; i < objCount; i++) {
+        free(objNames[i]);
+    }
+
+    return scene;
+}
+
 int main() {
+    Scene scene = ParseSceneConfig("./configs/test.toml");
+
     RenderSettings settings = {
         .aaEnabled = 0,
         .width = 1920
@@ -109,55 +173,7 @@ int main() {
 
     SetTargetFPS(100);
 
-    float pos1[3] = {0.0f, 0.0f, 0.0f};
-    float pos2[3] = {0.0f, -100.5f, 0.0f};
-    float pos3[3] = {0.5, 0.0f, -1.5f};
-
-    float colour1[3] = {0.5f, 1.0f, 0.5f};
-    float colour2[3] = {0.1f, 0.1f, 0.15f};
-    float colour3[3] = {0.6f, 0.1f, 0.1f};
-
-    ShaderMaterial mat1 = {
-        .type = 2,
-        .albedo = colour1,
-        .roughness = 0.0f,
-        .ior = 1.0f / 1.5f
-    };
-
-    ShaderMaterial mat2 = {
-        .type = 0,
-        .albedo = colour2,
-        .roughness = 0.0f,
-        .ior = 0.0f
-    };
-
-    ShaderMaterial mat3 = {
-        .type = 0,
-        .albedo = colour3,
-        .roughness = 0.0f,
-        .ior = 0.0f
-    };
-
-    Sphere spheres[3] = {
-        {
-            .pos = pos1,
-            .radius = 0.5f,
-            .material = mat1
-        },
-        {
-            .pos = pos2,
-            .radius = 100.0f,
-            .material = mat2
-        },
-        {
-            .pos = pos3,
-            .radius = 0.5f,
-            .material = mat3
-        }
-    };
-
-    size_t dataSize = sizeof(spheres) / sizeof(spheres[0]);
-    Texture2D data = CreateSphereData(spheres, dataSize);
+    Texture2D data = CreateSphereData(scene.objects, scene.objCount);
 
     Shader raytracing = LoadShader(0, "src/shaders/raytracing.frag");
     Shader denoiser = LoadShader(0, "src/shaders/denoise.frag");
@@ -186,7 +202,7 @@ int main() {
         RaytracerShaderValues raytracerValues = {
             .time = time,
             .resolution = res,
-            .dataSize = dataSize,
+            .dataSize = scene.objCount,
             .focalLength = camera.fovy,
             .cameraCenter = pos,
             .antiAliasing = settings.aaEnabled
@@ -262,6 +278,7 @@ int main() {
     }
 
     CloseWindow();
+    SceneFree(&scene);
 
     return 0;
 }

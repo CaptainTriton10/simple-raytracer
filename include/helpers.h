@@ -2,20 +2,26 @@
 #define HELPERS_H
 
 #include "raylib.h"
+#include "../include/tomlc17.h"
 #include <stddef.h>
 
 typedef struct ShaderMaterial {
     int type;
-    float *albedo;
+    float albedo[3];
     float roughness;
     float ior;
 } ShaderMaterial;
 
 typedef struct Sphere {
-    float *pos;
+    float pos[3];
     float radius;
     ShaderMaterial material;
 } Sphere;
+
+typedef struct Scene {
+    Sphere *objects;
+    size_t objCount;
+} Scene;
 
 typedef struct RenderSettings {
     int aaEnabled;
@@ -54,6 +60,13 @@ typedef struct DenoiserShaderLocations {
     int changed;
     int frame;
 } DenoiserShaderLocations;
+
+void error(const char *msg);
+void SceneFree(Scene *scene);
+
+toml_datum_t GetConfigParam(toml_result_t table, char *section, char *item, toml_type_t type);
+void GetConfigVec3(toml_result_t table, float *vec, char *section, char *item);
+Sphere GetObjectParams(toml_result_t table, char *name);
 
 RaytracerShaderLocations GetRaytracerLocations(Shader shader);
 void SetRaytracerValues(Shader shader, RaytracerShaderLocations locs, RaytracerShaderValues values);

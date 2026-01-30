@@ -1,10 +1,100 @@
 #include "../include/helpers.h"
+#include "../include/tomlc17.h"
 #include "raylib.h"
 #include <stdio.h>
 #include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define CAMERA_MOVE_SPEED 1.5
 #define CAMERA_ZOOM_SPEED 4
+
+void error(const char *msg) {
+    fprintf(stderr, "ERROR: %s\n", msg);
+    exit(1);
+}
+
+toml_datum_t GetConfigParam(toml_result_t table, char *section, char *item, toml_type_t type) {
+    char path[64];
+    sprintf(path, "%s.%s", section, item);
+
+    toml_datum_t param = toml_seek(table.toptab, path);
+    if (param.type != type) {
+        char errMsg[128];
+        sprintf(errMsg, "Missing or invalid %s property", path);
+
+        error(errMsg);
+    }
+
+    return param;
+}
+
+void GetConfigVec3(toml_result_t table, float *vec, char *section, char *item) {
+    char path[64];
+    sprintf(path, "%s.%s", section, item);
+
+    toml_datum_t param = toml_seek(table.toptab, path);
+    if (param.type != TOML_ARRAY) {
+        char errMsg[128];
+        sprintf(errMsg, "Missing or invalid %s property", path);
+
+        error(errMsg);
+    } else if(param.u.arr.size != 3) {
+        char errMsg[128];
+        sprintf(errMsg, "Wrong number of arguments (%d) for vec3 [%s]", param.u.arr.size, path);
+
+        error(errMsg);
+    }
+
+    float result[3];
+
+    for (int i = 0; i < 3; i++) {
+        result[i] = (float) param.u.arr.elem[i].u.fp64;
+    }
+
+    memcpy(vec, result, sizeof(result));    // Move result to input float array
+}
+
+Sphere GetObjectParams(toml_result_t table, char *name) {
+    float position[3];
+    GetConfigVec3(table, position, name, "position");
+
+    toml_datum_t radiusT = GetConfigParam(table, name, "radius", TOML_FP64);
+    toml_datum_t materialT = GetConfigParam(table, name, "material", TOML_STRING);
+    char *matName = _strdup(materialT.u.s);
+
+    toml_datum_t typeT = GetConfigParam(table, matName, "type", TOML_INT64);
+
+    float albedo[3];
+    GetConfigVec3(table, albedo, matName, "albedo");
+
+    toml_datum_t roughnessT = GetConfigParam(table, matName, "roughness", TOML_FP64);
+    toml_datum_t iorT = GetConfigParam(table, matName, "ior", TOML_FP64);
+
+    ShaderMaterial material = {
+        .type = typeT.u.int64,
+        .roughness = roughnessT.u.fp64,
+        .ior = iorT.u.fp64
+    };
+
+    memcpy(material.albedo, albedo, sizeof(albedo));
+
+    Sphere obj = {
+        .radius = radiusT.u.fp64,
+        .material = material
+    };
+
+    memcpy(obj.pos, position, sizeof(position));
+
+    free(matName);
+    return obj;
+}
+
+void SceneFree(Scene *scene) {
+    if (!scene) return;
+
+    free(scene->objects);
+}
 
 RaytracerShaderLocations GetRaytracerLocations(Shader shader) {
     RaytracerShaderLocations locs = {
