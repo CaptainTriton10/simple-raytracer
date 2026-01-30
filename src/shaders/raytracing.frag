@@ -366,33 +366,16 @@ vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
     return vec3(0.0);
 }
 
-void InitialiseCamera(inout Camera camera) {
-    camera.pixelSamplesScale = 1.0 / camera.samplesPerPixel;
+vec3 CalculateRayDirection(Camera camera) {
+    vec2 uv = (gl_FragCoord.xy / resolution) * 2.0 - 1.0;
+    uv.x *= resolution.x / resolution.y;
 
-    float theta = radians(camera.fov);
-    float h = tan(theta / 2);
-
-    float viewportHeight = 2.0 * h * camera.focalLength;
-    float viewportWidth = viewportHeight * (resolution.x / resolution.y);
-
-    vec3 viewportU = vec3(viewportWidth, 0.0, 0.0);
-    vec3 viewportV = vec3(0.0, viewportHeight, 0.0);
-
-    camera.pixelDeltaU = viewportU / resolution.x;
-    camera.pixelDeltaV = viewportV / resolution.y;
-
-    vec3 viewportUpperLeft = camera.position - vec3(0.0, 0.0, camera.focalLength) - viewportU / 2 - viewportV / 2;
-    camera.pixel00Loc = viewportUpperLeft + 0.5 * (camera.pixelDeltaU + camera.pixelDeltaV);
-}
-
-vec3 CalculateRayDirection(Camera camera, vec2 pixelIndex) {
-    vec3 pixelCenter = camera.pixel00Loc + pixelIndex.x * camera.pixelDeltaU + pixelIndex.y * camera.pixelDeltaV;
-    float scale = tan(radians(camera.fov / 2.0));
+    float scale = tan(radians(camera.fov) / 2);
 
     vec3 rayDirection = normalize(
             camera.forward +
-                pixelCenter.x * scale * camera.right +
-                pixelCenter.y * scale * camera.up
+                uv.x * scale * camera.right +
+                uv.y * scale * camera.up
         );
 
     return rayDirection;
@@ -455,6 +438,7 @@ void main() {
 
     Camera camera;
     camera.focalLength = focalLength;
+    camera.pixelSamplesScale = 1.0 / camera.samplesPerPixel;
 
     camera.forward = forward;
     camera.right = right;
@@ -463,8 +447,6 @@ void main() {
     camera.fov = 70;
     camera.position = cameraCenter;
     camera.samplesPerPixel = 20;
-
-    InitialiseCamera(camera);
 
     Hittable objects[MAX_OBJECTS];
 
@@ -489,7 +471,7 @@ void main() {
         pixelColour /= camera.samplesPerPixel;
         finalColour = vec4(LinearToGamma(pixelColour), 1.0);
     } else {
-        vec3 rayDirection = CalculateRayDirection(camera, pixelIndex);
+        vec3 rayDirection = CalculateRayDirection(camera);
         Ray ray = Ray(cameraCenter, rayDirection);
         finalColour = vec4(LinearToGamma(RayColour(ray, objects)), 1.0);
     }

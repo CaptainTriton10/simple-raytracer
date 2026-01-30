@@ -169,25 +169,8 @@ int main() {
 
     bool useA = true;
 
-    float yaw = 0.0f;
+    float yaw = 45.0f;
     float pitch = 0.0f;
-
-    float forward[3] = {
-        cosf(pitch) * cosf(yaw),
-        sinf(pitch),
-        cosf(pitch) * sinf(yaw)
-    };
-
-    NormaliseVec3(forward);
-
-    float worldUp[3] = {0.0, 1.0, 0.0};
-
-    float right[3];
-    CrossVec3(right, worldUp, forward);
-    NormaliseVec3(right);
-
-    float up[3];
-    CrossVec3(up, forward, right);
 
     int frame = 0;
     while (!WindowShouldClose()) {    // Detect window close button or ESC key
@@ -198,6 +181,23 @@ int main() {
         if (Movement(&camera) || Zoom(&camera) || Settings(&settings)) {
             changed = 1;
         }
+
+        float forward[3] = {
+            cosf(pitch) * cosf(yaw),
+            sinf(pitch),
+            cosf(pitch) * sinf(yaw)
+        };
+
+        NormaliseVec3(forward);
+
+        float worldUp[3] = {0.0, 1.0, 0.0};
+
+        float right[3];
+        CrossVec3(right, worldUp, forward);
+        NormaliseVec3(right);
+
+        float up[3];
+        CrossVec3(up, forward, right);
 
         float pos[3] = {camera.position.x, camera.position.y, camera.position.z};
 
