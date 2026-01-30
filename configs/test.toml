@@ -18,7 +18,7 @@ roughness = 0.0
 ior = 0.0
 
 [mat2]
-type = 0
-albedo = [0.5, 0.5, 0.5]
-roughness = 0.05
+type = 2
+albedo = [0.0, 0.0, 0.0]
+roughness = 0.0
 ior = 0.78

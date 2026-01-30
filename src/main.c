@@ -131,7 +131,7 @@ Scene ParseSceneConfig(const char *filename) {
 }
 
 int main() {
-    Scene scene = ParseSceneConfig("./configs/test.toml");
+    Scene scene = ParseSceneConfig("./configs/scene.toml");
 
     RenderSettings settings = {
         .aaEnabled = 0,
