@@ -1,0 +1,25 @@
+[data]
+materials = ["mat1"]
+objects = ["s1", "s2"]
+
+[mat1]
+type = 0
+albedo = [0.1, 0.1, 0.15]
+roughness = 0.0
+ior = 0.0
+
+[mat2]
+type = 0
+albedo = [0.5, 0.5, 0.5]
+roughness = 0.05
+ior = 0.78
+
+[s1]
+position = [0.0, 0.0, 0.0]
+radius = 0.5
+material = "mat2"
+
+[s2]
+position = [0.0, -10.5, 0.0]
+radius = 10.0
+material = "mat1"
