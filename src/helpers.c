@@ -102,6 +102,9 @@ RaytracerShaderLocations GetRaytracerLocations(Shader shader) {
         .resolution = GetShaderLocation(shader, "resolution"),
         .focalLength = GetShaderLocation(shader, "focalLength"),
         .cameraCenter = GetShaderLocation(shader, "cameraCenter"),
+        .forward = GetShaderLocation(shader, "forward"),
+        .right = GetShaderLocation(shader, "right"),
+        .up = GetShaderLocation(shader, "up"),
         .antiAliasing = GetShaderLocation(shader, "aaEnabled"),
         .dataSize = GetShaderLocation(shader, "dataSize")
     };
@@ -117,6 +120,10 @@ void SetRaytracerValues(Shader shader, RaytracerShaderLocations locs, RaytracerS
 
     SetShaderValue(shader, locs.focalLength, &values.focalLength, SHADER_UNIFORM_FLOAT);
     SetShaderValue(shader, locs.cameraCenter, values.cameraCenter, SHADER_UNIFORM_VEC3);
+
+    SetShaderValue(shader, locs.forward, values.forward, SHADER_UNIFORM_VEC3);
+    SetShaderValue(shader, locs.right, values.right, SHADER_UNIFORM_VEC3);
+    SetShaderValue(shader, locs.up, values.up, SHADER_UNIFORM_VEC3);
 
     SetShaderValue(shader, locs.antiAliasing, &values.antiAliasing, SHADER_UNIFORM_INT);
 }
@@ -141,6 +148,29 @@ void SetDenoiserValues(Shader shader, DenoiserShaderLocations locs, DenoiserShad
 
 float Clampf(float value, float min, float max) {
     return fmaxf(min, fminf(value, max));
+}
+
+void NormaliseVec3(float *v) {
+    float n[3];
+    memcpy(n, v, sizeof(float) * 3);
+
+    float magnitude = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+
+    n[0] /= magnitude;
+    n[1] /= magnitude;
+    n[2] /= magnitude;
+
+    memcpy(v, n, sizeof(float) * 3);
+}
+
+void CrossVec3(float *v, float *a, float *b) {
+    float n[3] = {
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0]
+    };
+
+    memcpy(v, n, sizeof(float) * 3);
 }
 
 bool Movement(Camera *camera) {

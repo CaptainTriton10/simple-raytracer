@@ -34,6 +34,9 @@ typedef struct RaytracerShaderValues {
     float *resolution;
     float focalLength;
     float *cameraCenter;
+    float *forward;
+    float *right;
+    float *up;
     int antiAliasing;
     int dataSize;
 } RaytracerShaderValues;
@@ -43,6 +46,9 @@ typedef struct RaytracerShaderLocations {
     int resolution;
     int focalLength;
     int cameraCenter;
+    int forward;
+    int right;
+    int up;
     int antiAliasing;
     int dataSize;
 } RaytracerShaderLocations;
@@ -75,6 +81,8 @@ DenoiserShaderLocations GetDenoiserLocations(Shader shader);
 void SetDenoiserValues(Shader shader, DenoiserShaderLocations locs, DenoiserShaderValues values);
 
 float Clampf(float value, float min, float max);
+void NormaliseVec3(float v[3]);
+void CrossVec3(float v[3], float a[3], float b[3]);
 
 bool Movement(Camera *camera);
 bool Zoom(Camera *camera);

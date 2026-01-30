@@ -1,6 +1,7 @@
 #include "../include/helpers.h"
 #include "raylib.h"
 #include "../include/tomlc17.h"
+#include <math.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -143,7 +144,7 @@ int main() {
     const int screenWidth = settings.width;
     const int screenHeight = (int)(screenWidth / aspectRatio);
 
-    SetConfigFlags(FLAG_FULLSCREEN_MODE);
+    // SetConfigFlags(FLAG_FULLSCREEN_MODE);
 
     InitWindow(screenWidth, screenHeight, "Simple Raytracer");
 
@@ -168,12 +169,32 @@ int main() {
 
     bool useA = true;
 
+    float yaw = 0.0f;
+    float pitch = 0.0f;
+
+    float forward[3] = {
+        cosf(pitch) * cosf(yaw),
+        sinf(pitch),
+        cosf(pitch) * sinf(yaw)
+    };
+
+    NormaliseVec3(forward);
+
+    float worldUp[3] = {0.0, 1.0, 0.0};
+
+    float right[3];
+    CrossVec3(right, worldUp, forward);
+    NormaliseVec3(right);
+
+    float up[3];
+    CrossVec3(up, forward, right);
+
     int frame = 0;
     while (!WindowShouldClose()) {    // Detect window close button or ESC key
         float res[2] = { (float)GetScreenWidth(), (float)GetScreenHeight() };
         float time = GetTime();
 
-        int changed = 0;
+        int changed = 1;
         if (Movement(&camera) || Zoom(&camera) || Settings(&settings)) {
             changed = 1;
         }
@@ -186,6 +207,9 @@ int main() {
             .dataSize = scene.objCount,
             .focalLength = camera.fovy,
             .cameraCenter = pos,
+            .forward = forward,
+            .right = right,
+            .up = up,
             .antiAliasing = settings.aaEnabled
         };
 
