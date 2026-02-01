@@ -182,7 +182,9 @@ int main() {
 
         Vector2 mouseDelta = GetMouseDelta();
         yaw -= mouseDelta.x * GetFrameTime() * MOUSE_SENSETIVITY;
-        pitch -= Clampf(mouseDelta.y * GetFrameTime() * MOUSE_SENSETIVITY, -85.0f, 85.0f);
+        pitch -= mouseDelta.y * GetFrameTime() * MOUSE_SENSETIVITY;
+
+        pitch = Clampf(pitch, -85.0f * DEG2RAD, 85.0f * DEG2RAD);
 
         float forward[3] = {
             cosf(pitch) * cosf(yaw),

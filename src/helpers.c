@@ -254,7 +254,7 @@ void DrawInfo(Camera camera, RenderSettings settings, int frame, Vector2 cameraR
     sprintf(cameraPosInfo, "Camera Position: [%.2f, %.2f, %.2f]", camera.position.x, camera.position.y, camera.position.z);
 
     char cameraRotInfo[128];
-    sprintf(cameraRotInfo, "Camera Rotation: [yaw = %.2f, pitch = %.2f]", cameraRotation.x, cameraRotation.y);
+    sprintf(cameraRotInfo, "Camera Rotation: [yaw = %.2f, pitch = %.2f]", cameraRotation.x * RAD2DEG, cameraRotation.y * RAD2DEG);
 
     char cameraFovyInfo[64];
     sprintf(cameraFovyInfo, "Camera Focal Length: %.2f", camera.fovy);
