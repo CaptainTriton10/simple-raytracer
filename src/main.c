@@ -9,7 +9,7 @@
 
 #define MAX_OBJECTS 4
 #define DATA_WIDTH 4
-#define MOUSE_SENSETIVITY 0.75
+#define MOUSE_SENSETIVITY 0.5
 
 // On Windows, target dedicated GPU with NVIDIA Optimus and AMD PowerXpress/Switchable Graphics
 #ifdef _WIN32
@@ -132,8 +132,17 @@ Scene ParseSceneConfig(const char *filename) {
     return scene;
 }
 
-int main() {
-    Scene scene = ParseSceneConfig("./configs/scene.toml");
+int main(int argc, char *argv[]) {
+    Scene scene;
+
+    if (argc == 1) {
+        scene = ParseSceneConfig("./configs/scene.toml");
+    } else if (argc == 2) {
+        scene = ParseSceneConfig(argv[1]);
+    } else {
+        fprintf(stderr, "Incorrect number of arguments (%d).", argc);
+        exit(1);
+    }
 
     RenderSettings settings = {
         .aaEnabled = 0,
@@ -145,7 +154,7 @@ int main() {
     const int screenWidth = settings.width;
     const int screenHeight = (int)(screenWidth / aspectRatio);
 
-    // SetConfigFlags(FLAG_FULLSCREEN_MODE);
+    SetConfigFlags(FLAG_FULLSCREEN_MODE);
 
     InitWindow(screenWidth, screenHeight, "Simple Raytracer");
 
