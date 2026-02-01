@@ -1,6 +1,6 @@
 #version 330
 
-#define DENOISE_MAX_FRAMES -1
+#define DENOISE_MAX_FRAMES 50
 
 uniform vec2 resolution;
 

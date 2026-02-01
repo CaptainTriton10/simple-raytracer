@@ -8,6 +8,7 @@
 
 #define CAMERA_MOVE_SPEED 1.5
 #define CAMERA_ZOOM_SPEED 4
+#define MOUSE_SENSETIVITY 0.5
 
 void error(const char *msg) {
     fprintf(stderr, "ERROR: %s\n", msg);
@@ -173,50 +174,50 @@ void CrossVec3(float *v, float *a, float *b) {
     memcpy(v, n, sizeof(float) * 3);
 }
 
-bool Movement(Camera *camera, float *forward, float *right, float *up) {
+bool Movement(Camera *camera, BasisVectors vectors) {
     float move = CAMERA_MOVE_SPEED * GetFrameTime();
     bool changed = false;
 
     if (IsKeyDown(KEY_W)) {
-        camera->position.x += forward[0] * move;
-        camera->position.y += forward[1] * move;
-        camera->position.z += forward[2] * move;
+        camera->position.x += vectors.forward[0] * move;
+        camera->position.y += vectors.forward[1] * move;
+        camera->position.z += vectors.forward[2] * move;
         changed = true;
     }
 
     if (IsKeyDown(KEY_S)) {
-        camera->position.x -= forward[0] * move;
-        camera->position.y -= forward[1] * move;
-        camera->position.z -= forward[2] * move;
+        camera->position.x -= vectors.forward[0] * move;
+        camera->position.y -= vectors.forward[1] * move;
+        camera->position.z -= vectors.forward[2] * move;
         changed = true;
     }
 
     if (IsKeyDown(KEY_A)) {
-        camera->position.x -= right[0] * move;
-        camera->position.y -= right[1] * move;
-        camera->position.z -= right[2] * move;
+        camera->position.x -= vectors.right[0] * move;
+        camera->position.y -= vectors.right[1] * move;
+        camera->position.z -= vectors.right[2] * move;
         changed = true;
     }
 
 
     if (IsKeyDown(KEY_D)) {
-        camera->position.x += right[0] * move;
-        camera->position.y += right[1] * move;
-        camera->position.z += right[2] * move;
+        camera->position.x += vectors.right[0] * move;
+        camera->position.y += vectors.right[1] * move;
+        camera->position.z += vectors.right[2] * move;
         changed = true;
     }
 
     if (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_C)) {
-        camera->position.x -= up[0] * move;
-        camera->position.y -= up[1] * move;
-        camera->position.z -= up[2] * move;
+        camera->position.x -= vectors.up[0] * move;
+        camera->position.y -= vectors.up[1] * move;
+        camera->position.z -= vectors.up[2] * move;
         changed = true;
     }
 
     if (IsKeyDown(KEY_SPACE)) {
-        camera->position.x += up[0] * move;
-        camera->position.y += up[1] * move;
-        camera->position.z += up[2] * move;
+        camera->position.x += vectors.up[0] * move;
+        camera->position.y += vectors.up[1] * move;
+        camera->position.z += vectors.up[2] * move;
         changed = true;
     }
 
@@ -235,6 +236,40 @@ bool Zoom(Camera *camera) {
     }
 
     return false;
+}
+
+BasisVectors Look(float *yaw, float *pitch) {
+    BasisVectors vectors;
+    float worldUp[3] = {0.0, 1.0, 0.0};
+
+    Vector2 mouseDelta = {
+            GetMouseDelta().x * MOUSE_SENSETIVITY * GetFrameTime(),
+            GetMouseDelta().y * MOUSE_SENSETIVITY * GetFrameTime()};
+
+    *yaw -= mouseDelta.x;
+    *pitch -= mouseDelta.y;
+    *pitch = Clampf(*pitch, -85.0f * DEG2RAD, 85.0f * DEG2RAD);
+
+    float forward[3] = {
+        cosf(*pitch) * cosf(*yaw),
+        sinf(*pitch),
+        cosf(*pitch) * sinf(*yaw)
+    };
+
+    NormaliseVec3(forward);
+
+    float right[3];
+    CrossVec3(right, worldUp, forward);
+    NormaliseVec3(right);
+
+    float up[3];
+    CrossVec3(up, forward, right);
+
+    memcpy(vectors.forward, forward, sizeof(forward));
+    memcpy(vectors.right, right, sizeof(right));
+    memcpy(vectors.up, up, sizeof(up));
+
+    return vectors;
 }
 
 bool Settings(RenderSettings *settings) {

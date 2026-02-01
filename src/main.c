@@ -9,7 +9,6 @@
 
 #define MAX_OBJECTS 4
 #define DATA_WIDTH 4
-#define MOUSE_SENSETIVITY 0.5
 
 // On Windows, target dedicated GPU with NVIDIA Optimus and AMD PowerXpress/Switchable Graphics
 #ifdef _WIN32
@@ -179,7 +178,7 @@ int main(int argc, char *argv[]) {
 
     bool useA = true;
 
-    float yaw = 1.0f;
+    float yaw = -90.0f * DEG2RAD;
     float pitch = 0.0f;
 
     DisableCursor();
@@ -189,31 +188,12 @@ int main(int argc, char *argv[]) {
         float res[2] = { (float)GetScreenWidth(), (float)GetScreenHeight() };
         float time = GetTime();
 
-        Vector2 mouseDelta = GetMouseDelta();
-        yaw -= mouseDelta.x * GetFrameTime() * MOUSE_SENSETIVITY;
-        pitch -= mouseDelta.y * GetFrameTime() * MOUSE_SENSETIVITY;
+        BasisVectors vectors = Look(&yaw, &pitch);
 
-        pitch = Clampf(pitch, -85.0f * DEG2RAD, 85.0f * DEG2RAD);
-
-        float forward[3] = {
-            cosf(pitch) * cosf(yaw),
-            sinf(pitch),
-            cosf(pitch) * sinf(yaw)
-        };
-
-        NormaliseVec3(forward);
-
-        float worldUp[3] = {0.0, 1.0, 0.0};
-
-        float right[3];
-        CrossVec3(right, worldUp, forward);
-        NormaliseVec3(right);
-
-        float up[3];
-        CrossVec3(up, forward, right);
-
-        int changed = 1;
-        if (Movement(&camera, forward, right, up) || Zoom(&camera) || Settings(&settings)) {
+        int changed = 0;
+        if (Movement(&camera, vectors) || Zoom(&camera) || Settings(&settings)) {
+            changed = 1;
+        } else if (GetMouseDelta().x != 0.0f || GetMouseDelta().y != 0.0f) {
             changed = 1;
         }
 
@@ -225,9 +205,9 @@ int main(int argc, char *argv[]) {
             .dataSize = scene.objCount,
             .focalLength = camera.fovy,
             .cameraCenter = pos,
-            .forward = forward,
-            .right = right,
-            .up = up,
+            .forward = vectors.forward,
+            .right = vectors.right,
+            .up = vectors.up,
             .antiAliasing = settings.aaEnabled
         };
 

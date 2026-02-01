@@ -67,6 +67,12 @@ typedef struct DenoiserShaderLocations {
     int frame;
 } DenoiserShaderLocations;
 
+typedef struct BasisVectors {
+    float forward[3];
+    float right[3];
+    float up[3];
+} BasisVectors;
+
 void error(const char *msg);
 void SceneFree(Scene *scene);
 
@@ -84,8 +90,9 @@ float Clampf(float value, float min, float max);
 void NormaliseVec3(float v[3]);
 void CrossVec3(float v[3], float a[3], float b[3]);
 
-bool Movement(Camera *camera, float *forward, float *right, float *up);
+bool Movement(Camera *camera, BasisVectors vectors);
 bool Zoom(Camera *camera);
+BasisVectors Look(float *yaw, float *pitch);
 
 bool Settings(RenderSettings *settings);
 void DrawInfo(Camera camera, RenderSettings settings, int frame, Vector2 cameraRotation);
