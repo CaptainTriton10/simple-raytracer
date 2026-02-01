@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define CAMERA_MOVE_SPEED 1.5
-#define CAMERA_ZOOM_SPEED 4
+#define CAMERA_ZOOM_SPEED 7
 #define MOUSE_SENSETIVITY 0.5
 
 void error(const char *msg) {
@@ -101,7 +101,7 @@ RaytracerShaderLocations GetRaytracerLocations(Shader shader) {
     RaytracerShaderLocations locs = {
         .time = GetShaderLocation(shader, "time"),
         .resolution = GetShaderLocation(shader, "resolution"),
-        .focalLength = GetShaderLocation(shader, "focalLength"),
+        .fov = GetShaderLocation(shader, "fov"),
         .cameraCenter = GetShaderLocation(shader, "cameraCenter"),
         .forward = GetShaderLocation(shader, "forward"),
         .right = GetShaderLocation(shader, "right"),
@@ -119,7 +119,7 @@ void SetRaytracerValues(Shader shader, RaytracerShaderLocations locs, RaytracerS
 
     SetShaderValue(shader, locs.dataSize, &values.dataSize, SHADER_UNIFORM_INT);
 
-    SetShaderValue(shader, locs.focalLength, &values.focalLength, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(shader, locs.fov, &values.fov, SHADER_UNIFORM_FLOAT);
     SetShaderValue(shader, locs.cameraCenter, values.cameraCenter, SHADER_UNIFORM_VEC3);
 
     SetShaderValue(shader, locs.forward, values.forward, SHADER_UNIFORM_VEC3);
@@ -228,7 +228,7 @@ bool Zoom(Camera *camera) {
     float zoomFactor = CAMERA_ZOOM_SPEED * GetFrameTime();
     float scroll = 1 + zoomFactor * GetMouseWheelMove();
 
-    camera->fovy = Clampf(camera->fovy * scroll, 0.1, 30);
+    camera->fovy = Clampf(camera->fovy / scroll, 30, 120);
 
     // If the camera was zoomed this frame
     if (scroll != 1.0) {

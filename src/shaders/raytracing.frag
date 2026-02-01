@@ -19,7 +19,7 @@ uniform float time;
 uniform sampler2D data;
 uniform int dataSize;
 
-uniform float focalLength;
+uniform float fov;
 uniform vec3 cameraCenter;
 
 uniform vec3 forward;
@@ -437,14 +437,13 @@ void main() {
     vec2 pixelIndex = gl_FragCoord.xy - vec2(0.5);
 
     Camera camera;
-    camera.focalLength = focalLength;
     camera.pixelSamplesScale = 1.0 / camera.samplesPerPixel;
 
     camera.forward = forward;
     camera.right = right;
     camera.up = up;
 
-    camera.fov = 70;
+    camera.fov = fov;
     camera.position = cameraCenter;
     camera.samplesPerPixel = 20;
 

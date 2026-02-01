@@ -159,7 +159,7 @@ int main(int argc, char *argv[]) {
 
     Camera camera = {
         .position = {0.0f, 0.0f, 2.0f},
-        .fovy = 2.0f
+        .fovy = 75.0f
     };
 
     SetTargetFPS(100);
@@ -203,7 +203,7 @@ int main(int argc, char *argv[]) {
             .time = time,
             .resolution = res,
             .dataSize = scene.objCount,
-            .focalLength = camera.fovy,
+            .fov = camera.fovy,
             .cameraCenter = pos,
             .forward = vectors.forward,
             .right = vectors.right,

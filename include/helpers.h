@@ -32,7 +32,7 @@ typedef struct RenderSettings {
 typedef struct RaytracerShaderValues {
     float time;
     float *resolution;
-    float focalLength;
+    float fov;
     float *cameraCenter;
     float *forward;
     float *right;
@@ -44,7 +44,7 @@ typedef struct RaytracerShaderValues {
 typedef struct RaytracerShaderLocations {
     int time;
     int resolution;
-    int focalLength;
+    int fov;
     int cameraCenter;
     int forward;
     int right;
