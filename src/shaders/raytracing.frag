@@ -22,6 +22,10 @@ uniform int dataSize;
 uniform float focalLength;
 uniform vec3 cameraCenter;
 
+uniform vec3 forward;
+uniform vec3 right;
+uniform vec3 up;
+
 uniform int aaEnabled;
 
 struct Material {
@@ -69,11 +73,17 @@ struct Ray {
 struct Camera {
     int imageHeight;
     float focalLength;
+    float fov;
 
     int samplesPerPixel;
     float pixelSamplesScale;
 
     vec3 position;
+
+    vec3 forward;
+    vec3 right;
+    vec3 up;
+
     vec3 pixel00Loc;
     vec3 pixelDeltaU;
     vec3 pixelDeltaV;
@@ -356,25 +366,17 @@ vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
     return vec3(0.0);
 }
 
-void InitialiseCamera(inout Camera camera) {
-    camera.pixelSamplesScale = 1.0 / camera.samplesPerPixel;
+vec3 CalculateRayDirection(Camera camera) {
+    vec2 uv = (gl_FragCoord.xy / resolution) * 2.0 - 1.0;
+    uv.x *= resolution.x / resolution.y;
 
-    float viewportHeight = 2.0;
-    float viewportWidth = viewportHeight * (resolution.x / resolution.y);
+    float scale = tan(radians(camera.fov) / 2);
 
-    vec3 viewportU = vec3(viewportWidth, 0.0, 0.0);
-    vec3 viewportV = vec3(0.0, viewportHeight, 0.0);
-
-    camera.pixelDeltaU = viewportU / resolution.x;
-    camera.pixelDeltaV = viewportV / resolution.y;
-
-    vec3 viewportUpperLeft = camera.position - vec3(0.0, 0.0, camera.focalLength) - viewportU / 2 - viewportV / 2;
-    camera.pixel00Loc = viewportUpperLeft + 0.5 * (camera.pixelDeltaU + camera.pixelDeltaV);
-}
-
-vec3 CalculateRayDirection(Camera camera, vec2 pixelIndex) {
-    vec3 pixelCenter = camera.pixel00Loc + pixelIndex.x * camera.pixelDeltaU + pixelIndex.y * camera.pixelDeltaV;
-    vec3 rayDirection = pixelCenter - camera.position;
+    vec3 rayDirection = normalize(
+            camera.forward +
+                uv.x * scale * camera.right +
+                uv.y * scale * camera.up
+        );
 
     return rayDirection;
 }
@@ -436,10 +438,15 @@ void main() {
 
     Camera camera;
     camera.focalLength = focalLength;
+    camera.pixelSamplesScale = 1.0 / camera.samplesPerPixel;
+
+    camera.forward = forward;
+    camera.right = right;
+    camera.up = up;
+
+    camera.fov = 70;
     camera.position = cameraCenter;
     camera.samplesPerPixel = 20;
-
-    InitialiseCamera(camera);
 
     Hittable objects[MAX_OBJECTS];
 
@@ -464,7 +471,7 @@ void main() {
         pixelColour /= camera.samplesPerPixel;
         finalColour = vec4(LinearToGamma(pixelColour), 1.0);
     } else {
-        vec3 rayDirection = CalculateRayDirection(camera, pixelIndex);
+        vec3 rayDirection = CalculateRayDirection(camera);
         Ray ray = Ray(cameraCenter, rayDirection);
         finalColour = vec4(LinearToGamma(RayColour(ray, objects)), 1.0);
     }

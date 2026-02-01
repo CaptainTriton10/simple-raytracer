@@ -102,6 +102,9 @@ RaytracerShaderLocations GetRaytracerLocations(Shader shader) {
         .resolution = GetShaderLocation(shader, "resolution"),
         .focalLength = GetShaderLocation(shader, "focalLength"),
         .cameraCenter = GetShaderLocation(shader, "cameraCenter"),
+        .forward = GetShaderLocation(shader, "forward"),
+        .right = GetShaderLocation(shader, "right"),
+        .up = GetShaderLocation(shader, "up"),
         .antiAliasing = GetShaderLocation(shader, "aaEnabled"),
         .dataSize = GetShaderLocation(shader, "dataSize")
     };
@@ -117,6 +120,10 @@ void SetRaytracerValues(Shader shader, RaytracerShaderLocations locs, RaytracerS
 
     SetShaderValue(shader, locs.focalLength, &values.focalLength, SHADER_UNIFORM_FLOAT);
     SetShaderValue(shader, locs.cameraCenter, values.cameraCenter, SHADER_UNIFORM_VEC3);
+
+    SetShaderValue(shader, locs.forward, values.forward, SHADER_UNIFORM_VEC3);
+    SetShaderValue(shader, locs.right, values.right, SHADER_UNIFORM_VEC3);
+    SetShaderValue(shader, locs.up, values.up, SHADER_UNIFORM_VEC3);
 
     SetShaderValue(shader, locs.antiAliasing, &values.antiAliasing, SHADER_UNIFORM_INT);
 }
@@ -143,37 +150,73 @@ float Clampf(float value, float min, float max) {
     return fmaxf(min, fminf(value, max));
 }
 
-bool Movement(Camera *camera) {
+void NormaliseVec3(float *v) {
+    float n[3];
+    memcpy(n, v, sizeof(float) * 3);
+
+    float magnitude = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+
+    n[0] /= magnitude;
+    n[1] /= magnitude;
+    n[2] /= magnitude;
+
+    memcpy(v, n, sizeof(float) * 3);
+}
+
+void CrossVec3(float *v, float *a, float *b) {
+    float n[3] = {
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0]
+    };
+
+    memcpy(v, n, sizeof(float) * 3);
+}
+
+bool Movement(Camera *camera, float *forward, float *right, float *up) {
     float move = CAMERA_MOVE_SPEED * GetFrameTime();
     bool changed = false;
 
     if (IsKeyDown(KEY_W)) {
-        camera->position.z += -move;
-        changed = true;
-    }
-
-    if (IsKeyDown(KEY_A)) {
-        camera->position.x += -move;
+        camera->position.x += forward[0] * move;
+        camera->position.y += forward[1] * move;
+        camera->position.z += forward[2] * move;
         changed = true;
     }
 
     if (IsKeyDown(KEY_S)) {
-        camera->position.z += move;
+        camera->position.x -= forward[0] * move;
+        camera->position.y -= forward[1] * move;
+        camera->position.z -= forward[2] * move;
         changed = true;
     }
 
+    if (IsKeyDown(KEY_A)) {
+        camera->position.x -= right[0] * move;
+        camera->position.y -= right[1] * move;
+        camera->position.z -= right[2] * move;
+        changed = true;
+    }
+
+
     if (IsKeyDown(KEY_D)) {
-        camera->position.x += move;
+        camera->position.x += right[0] * move;
+        camera->position.y += right[1] * move;
+        camera->position.z += right[2] * move;
         changed = true;
     }
 
     if (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_C)) {
-        camera->position.y += -move;
+        camera->position.x -= up[0] * move;
+        camera->position.y -= up[1] * move;
+        camera->position.z -= up[2] * move;
         changed = true;
     }
 
     if (IsKeyDown(KEY_SPACE)) {
-        camera->position.y += move;
+        camera->position.x += up[0] * move;
+        camera->position.y += up[1] * move;
+        camera->position.z += up[2] * move;
         changed = true;
     }
 
@@ -203,12 +246,15 @@ bool Settings(RenderSettings *settings) {
     return false;
 }
 
-void DrawInfo(Camera camera, RenderSettings settings, int frame) {
+void DrawInfo(Camera camera, RenderSettings settings, int frame, Vector2 cameraRotation) {
     char frameInfo[16];
     sprintf(frameInfo, "Frame: %d", frame);
 
     char cameraPosInfo[128];
     sprintf(cameraPosInfo, "Camera Position: [%.2f, %.2f, %.2f]", camera.position.x, camera.position.y, camera.position.z);
+
+    char cameraRotInfo[128];
+    sprintf(cameraRotInfo, "Camera Rotation: [yaw = %.2f, pitch = %.2f]", cameraRotation.x * RAD2DEG, cameraRotation.y * RAD2DEG);
 
     char cameraFovyInfo[64];
     sprintf(cameraFovyInfo, "Camera Focal Length: %.2f", camera.fovy);
@@ -219,11 +265,12 @@ void DrawInfo(Camera camera, RenderSettings settings, int frame) {
     DrawFPS(5, 5);
 
     DrawText(cameraPosInfo, 5, 50, 20, RED);
-    DrawText(cameraFovyInfo, 5, 75, 20, RED);
+    DrawText(cameraRotInfo, 5, 75, 20, RED);
+    DrawText(cameraFovyInfo, 5, 100, 20, RED);
 
-    DrawText(aaInfo, 5, 125, 20, YELLOW);
+    DrawText(aaInfo, 5, 150, 20, YELLOW);
 
-    DrawText(frameInfo, 5, 175, 20, PURPLE);
+    DrawText(frameInfo, 5, 200, 20, PURPLE);
 }
 
 void CopyTexture(RenderTexture source, RenderTexture target, float resolution[2]) {
