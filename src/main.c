@@ -9,6 +9,7 @@
 
 #define MAX_OBJECTS 4
 #define DATA_WIDTH 4
+#define MOUSE_SENSETIVITY 0.75
 
 // On Windows, target dedicated GPU with NVIDIA Optimus and AMD PowerXpress/Switchable Graphics
 #ifdef _WIN32
@@ -169,18 +170,19 @@ int main() {
 
     bool useA = true;
 
-    float yaw = 45.0f;
+    float yaw = 1.0f;
     float pitch = 0.0f;
+
+    DisableCursor();
 
     int frame = 0;
     while (!WindowShouldClose()) {    // Detect window close button or ESC key
         float res[2] = { (float)GetScreenWidth(), (float)GetScreenHeight() };
         float time = GetTime();
 
-        int changed = 1;
-        if (Movement(&camera) || Zoom(&camera) || Settings(&settings)) {
-            changed = 1;
-        }
+        Vector2 mouseDelta = GetMouseDelta();
+        yaw -= mouseDelta.x * GetFrameTime() * MOUSE_SENSETIVITY;
+        pitch -= Clampf(mouseDelta.y * GetFrameTime() * MOUSE_SENSETIVITY, -85.0f, 85.0f);
 
         float forward[3] = {
             cosf(pitch) * cosf(yaw),
@@ -198,6 +200,11 @@ int main() {
 
         float up[3];
         CrossVec3(up, forward, right);
+
+        int changed = 1;
+        if (Movement(&camera, forward, right, up) || Zoom(&camera) || Settings(&settings)) {
+            changed = 1;
+        }
 
         float pos[3] = {camera.position.x, camera.position.y, camera.position.z};
 
@@ -244,7 +251,7 @@ int main() {
                     (Vector2){ 0, 0 },
                     WHITE
                 );
-                DrawInfo(camera, settings, frame);
+                DrawInfo(camera, settings, frame, (Vector2){yaw, pitch});
             EndDrawing();
         } else {
             DenoiserShaderValues denoiserValues = {
@@ -273,7 +280,7 @@ int main() {
                     (Vector2){ 0, 0 },
                     WHITE
                 );
-                DrawInfo(camera, settings, frame);
+                DrawInfo(camera, settings, frame, (Vector2){yaw, pitch});
             EndDrawing();
 
             useA = !useA;

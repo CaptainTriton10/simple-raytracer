@@ -84,11 +84,11 @@ float Clampf(float value, float min, float max);
 void NormaliseVec3(float v[3]);
 void CrossVec3(float v[3], float a[3], float b[3]);
 
-bool Movement(Camera *camera);
+bool Movement(Camera *camera, float *forward, float *right, float *up);
 bool Zoom(Camera *camera);
 
 bool Settings(RenderSettings *settings);
-void DrawInfo(Camera camera, RenderSettings settings, int frame);
+void DrawInfo(Camera camera, RenderSettings settings, int frame, Vector2 cameraRotation);
 
 void CopyTexture(RenderTexture source, RenderTexture target, float resolution[2]);
 void ClearTexture(RenderTexture tex);
