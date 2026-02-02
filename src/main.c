@@ -243,6 +243,7 @@ int main(int argc, char *argv[]) {
                     WHITE
                 );
                 DrawInfo(camera, settings, frame, (Vector2){yaw, pitch});
+                DrawCircle(res[0] / 2.0, res[1] / 2.0, 2.0, BLACK);
             EndDrawing();
         } else {
             DenoiserShaderValues denoiserValues = {
@@ -272,6 +273,7 @@ int main(int argc, char *argv[]) {
                     WHITE
                 );
                 DrawInfo(camera, settings, frame, (Vector2){yaw, pitch});
+                DrawCircle(res[0] / 2.0, res[1] / 2.0, 2.0, BLACK);
             EndDrawing();
 
             useA = !useA;

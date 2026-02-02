@@ -456,12 +456,22 @@ Hittable GetHittable(int i) {
     return object;
 }
 
+float CalculateFocusDistance(Camera camera, Hittable objects[MAX_OBJECTS]) {
+    Ray ray = Ray(camera.position, camera.forward);
+    HitRecord rec;
+
+    if (HitWorld(ray, Interval(0.0001, POS_INFINITY), rec, objects)) {
+        return rec.t;
+    } else {
+        return 1.0;
+    }
+}
+
 void main() {
     vec2 pixelIndex = gl_FragCoord.xy - vec2(0.5);
 
     Camera camera;
     camera.pixelSamplesScale = 1.0 / camera.samplesPerPixel;
-    camera.focus = 1.0;
     camera.defocusAngle = 2.0;
 
     camera.forward = forward;
@@ -484,6 +494,8 @@ void main() {
             objects[i] = Hittable(NONE, vec4(0.0), vec4(0.0), vec4(0.0), false);
         }
     }
+
+    camera.focus = CalculateFocusDistance(camera, objects);
 
     if (aaEnabled == 1) {
         vec3 pixelColour = vec3(0.0, 0.0, 0.0);
