@@ -10,7 +10,7 @@
 #define MAX_OBJECTS 4
 #define POS_INFINITY 100000000
 
-#define MAX_DEPTH 5
+#define MAX_DEPTH 50
 
 out vec4 finalColour;
 uniform vec2 resolution;
@@ -70,6 +70,16 @@ struct Ray {
     vec3 direction;
 };
 
+struct AABB {
+    Interval x, y, z;
+};
+
+struct BVHNode {
+    Hittable left;
+    Hittable right;
+    AABB bbox;
+};
+
 struct Camera {
     int imageHeight;
     float focalLength;
@@ -96,6 +106,7 @@ struct Sphere {
     vec3 pos;
     float radius;
     Material material;
+    AABB bbox;
 };
 
 float LengthSquared(vec3 v) {
@@ -204,6 +215,53 @@ bool IntervalSurrounds(Interval interval, float x) {
     return interval.min < x && interval.max > x;
 }
 
+Interval IntervalExpand(Interval interval, float delta) {
+    float padding = delta / 2.0;
+    return Interval(interval.min - padding, interval.max + padding);
+}
+
+Interval InitInterval(Interval a, Interval b) {
+    Interval interval;
+
+    interval.min = a.min <= b.min ? a.min : b.min;
+    interval.max = a.max >= b.max ? a.max : b.max;
+
+    return interval;
+}
+
+AABB InitAABB(vec3 a, vec3 b) {
+    AABB aabb;
+
+    aabb.x = (a.x <= b.x) ? Interval(a.x, b.x) : Interval(b.x, a.x);
+    aabb.y = (a.y <= b.y) ? Interval(a.y, b.y) : Interval(b.y, a.y);
+    aabb.z = (a.z <= b.z) ? Interval(a.z, b.z) : Interval(b.z, a.z);
+
+    return aabb;
+}
+
+AABB InitAABB(AABB box0, AABB box1) {
+    AABB aabb = AABB(
+            InitInterval(box0.x, box1.x),
+            InitInterval(box0.y, box1.y),
+            InitInterval(box0.z, box1.z)
+        );
+
+    return aabb;
+}
+
+Sphere InitSphere(vec3 position, float radius, Material mat) {
+    vec3 rvec = vec3(radius);
+    AABB aabb = InitAABB(position - rvec, position + rvec);
+
+    return Sphere(position, radius, mat, aabb);
+}
+
+Interval AxisInterval(AABB aabb, int n) {
+    if (n == 1) return aabb.y;
+    if (n == 2) return aabb.z;
+    return aabb.x;
+}
+
 bool LambertianScatter(Material mat, Ray ray, HitRecord rec, inout vec3 attenuation, inout Ray scattered) {
     vec3 scatterDirection = rec.normal + RandomUnitVec3(gl_FragCoord.xy * (gl_FragCoord.yx * time));
 
@@ -287,7 +345,69 @@ bool HitSphere(Sphere sphere, Ray ray, Interval rayT, inout HitRecord rec) {
     return true;
 }
 
+bool HitAABB(AABB aabb, Ray ray, inout Interval rayT) {
+    vec3 rayOrigin = ray.origin;
+    vec3 rayDirection = ray.direction;
+
+    for (int axis = 0; axis < 3; axis++) {
+        Interval ax = AxisInterval(aabb, axis);
+        float adinv;
+        float t0;
+        float t1;
+
+        switch (axis) {
+            case 0:
+            adinv = 1.0 / rayDirection.x;
+            t0 = (ax.min - rayOrigin.x) * adinv;
+            t1 = (ax.max - rayOrigin.x) * adinv;
+
+            break;
+            case 1:
+            adinv = 1.0 / rayDirection.y;
+            t0 = (ax.min - rayOrigin.y) * adinv;
+            t1 = (ax.max - rayOrigin.y) * adinv;
+
+            break;
+            case 2:
+            adinv = 1.0 / rayDirection.z;
+            t0 = (ax.min - rayOrigin.z) * adinv;
+            t1 = (ax.max - rayOrigin.z) * adinv;
+
+            break;
+            default:
+            adinv = 1.0;
+            break;
+        }
+
+        if (t0 < t1) {
+            if (t0 > rayT.min) {
+                rayT.min = t0;
+            }
+
+            if (t1 < rayT.max) {
+                rayT.max = t1;
+            }
+        } else {
+            if (t0 > rayT.min) {
+                rayT.min = t1;
+            }
+
+            if (t1 < rayT.max) {
+                rayT.max = t0;
+            }
+        }
+
+        if (rayT.max <= rayT.min) {
+            return false;
+        }
+
+        return true;
+    }
+}
+
 bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
+    AABB bbox;
+
     if (object.type == SPHERE) {
         Material mat = Material(
                 int(object.data1.x), // Material type
@@ -295,8 +415,9 @@ bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
                 object.data2.x, // Roughness
                 object.data2.y // IOR
             );
-        Sphere sphere = Sphere(object.data0.xyz, object.data0.w, mat);
+        Sphere sphere = InitSphere(object.data0.xyz, object.data0.w, mat);
 
+        bbox = InitAABB(bbox, sphere.bbox);
         return HitSphere(sphere, ray, rayT, rec);
     } else if (object.type == NONE) {
         // Do nothing
