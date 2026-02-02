@@ -78,6 +78,9 @@ struct Camera {
     int samplesPerPixel;
     float pixelSamplesScale;
 
+    float defocusAngle;
+    float focus;
+
     vec3 position;
 
     vec3 forward;
@@ -145,6 +148,19 @@ vec3 RandomOnHemisphere(vec3 normal, vec2 seed) {
         return onUnitSphere;
     } else {
         return -onUnitSphere;
+    }
+}
+
+vec3 RandomUnitDisk(vec2 seed) {
+    vec3 p = vec3(
+            Random(seed, -1.0, 1.0),
+            Random(vec2(seed.x * 17, seed.y * 31), -1.0, 1.0),
+            0.0);
+
+    if (LengthSquared(p) < 1.0) {
+        return p;
+    } else {
+        return normalize(p);
     }
 }
 
@@ -366,6 +382,13 @@ vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
     return vec3(0.0);
 }
 
+vec3 DefocusDiskSample(Camera camera, float lensRadius) {
+    vec3 p = RandomUnitDisk(gl_FragCoord.xy * (gl_FragCoord.yx * time));
+    return camera.position
+        + p.x * lensRadius * camera.right
+        + p.y * lensRadius * camera.up;
+}
+
 vec3 CalculateRayDirection(Camera camera) {
     vec2 uv = (gl_FragCoord.xy / resolution) * 2.0 - 1.0;
     uv.x *= resolution.x / resolution.y;
@@ -438,6 +461,8 @@ void main() {
 
     Camera camera;
     camera.pixelSamplesScale = 1.0 / camera.samplesPerPixel;
+    camera.focus = 1.0;
+    camera.defocusAngle = 2.0;
 
     camera.forward = forward;
     camera.right = right;
@@ -471,7 +496,15 @@ void main() {
         finalColour = vec4(LinearToGamma(pixelColour), 1.0);
     } else {
         vec3 rayDirection = CalculateRayDirection(camera);
-        Ray ray = Ray(cameraCenter, rayDirection);
+
+        vec3 focusPoint = camera.position + rayDirection * camera.focus;
+        float defocusRadius = camera.focus * tan(radians(camera.defocusAngle / 2.0));
+
+        vec3 rayOrigin = (camera.defocusAngle <= 0.0) ? camera.position : DefocusDiskSample(camera, defocusRadius);
+
+        vec3 finalDirection = normalize(focusPoint - rayOrigin);
+
+        Ray ray = Ray(rayOrigin, finalDirection);
         finalColour = vec4(LinearToGamma(RayColour(ray, objects)), 1.0);
     }
 }
