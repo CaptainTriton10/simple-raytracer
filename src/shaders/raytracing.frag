@@ -65,10 +65,6 @@ struct Hittable {
     bool isActive;
 };
 
-struct HittableList {
-    Hittable objects[MAX_OBJECTS];
-};
-
 struct Ray {
     vec3 origin;
     vec3 direction;
@@ -76,6 +72,10 @@ struct Ray {
 
 struct AABB {
     Interval x, y, z;
+};
+
+struct HittableList {
+    Hittable objects[MAX_OBJECTS];
 };
 
 struct BVHNode {
@@ -110,7 +110,6 @@ struct Sphere {
     vec3 pos;
     float radius;
     Material material;
-    AABB bbox;
 };
 
 float LengthSquared(vec3 v) {
@@ -222,42 +221,6 @@ bool IntervalSurrounds(Interval interval, float x) {
 Interval IntervalExpand(Interval interval, float delta) {
     float padding = delta / 2.0;
     return Interval(interval.min - padding, interval.max + padding);
-}
-
-Interval InitInterval(Interval a, Interval b) {
-    Interval interval;
-
-    interval.min = a.min <= b.min ? a.min : b.min;
-    interval.max = a.max >= b.max ? a.max : b.max;
-
-    return interval;
-}
-
-AABB InitAABB(vec3 a, vec3 b) {
-    AABB aabb;
-
-    aabb.x = (a.x <= b.x) ? Interval(a.x, b.x) : Interval(b.x, a.x);
-    aabb.y = (a.y <= b.y) ? Interval(a.y, b.y) : Interval(b.y, a.y);
-    aabb.z = (a.z <= b.z) ? Interval(a.z, b.z) : Interval(b.z, a.z);
-
-    return aabb;
-}
-
-AABB InitAABB(AABB box0, AABB box1) {
-    AABB aabb = AABB(
-            InitInterval(box0.x, box1.x),
-            InitInterval(box0.y, box1.y),
-            InitInterval(box0.z, box1.z)
-        );
-
-    return aabb;
-}
-
-Sphere InitSphere(vec3 position, float radius, Material mat) {
-    vec3 rvec = vec3(radius);
-    AABB aabb = InitAABB(position - rvec, position + rvec);
-
-    return Sphere(position, radius, mat, aabb);
 }
 
 Interval AxisInterval(AABB aabb, int n) {
@@ -409,9 +372,7 @@ bool HitAABB(AABB aabb, Ray ray, inout Interval rayT) {
     }
 }
 
-bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
-    AABB bbox;
-
+bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec, HittableList world) {
     if (object.type == SPHERE) {
         Material mat = Material(
                 int(object.data1.x), // Material type
@@ -419,13 +380,23 @@ bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
                 object.data2.x, // Roughness
                 object.data2.y // IOR
             );
-        Sphere sphere = InitSphere(object.data0.xyz, object.data0.w, mat);
+        Sphere sphere = Sphere(object.data0.xyz, object.data0.w, mat);
 
-        bbox = InitAABB(bbox, sphere.bbox);
         return HitSphere(sphere, ray, rayT, rec);
     } else if (object.type == NONE) {
         // Do nothing
     }
+}
+
+bool HitBVHNode(BVHNode node, Ray ray, Interval rayT, HitRecord rec, HittableList world) {
+    if (!HitAABB(node.bbox, ray, rayT)){
+        return false;
+    }
+
+    bool hitLeft = HitHittable(node.left, ray, rayT, rec, world);
+    bool hitRight = HitHittable(node.right, ray, Interval(rayT.min , hitLeft ? rec.t : rayT.max), rec, world);
+
+    return hitLeft || hitRight;
 }
 
 bool HitWorld(Ray ray, Interval rayT, out HitRecord rec, HittableList world) {
@@ -434,7 +405,7 @@ bool HitWorld(Ray ray, Interval rayT, out HitRecord rec, HittableList world) {
     float closest = rayT.max;
 
     for (int i = 0; i < MAX_OBJECTS; i++) {
-        if (HitHittable(world.objects[i], ray, Interval(rayT.min, closest), temp) && world.objects[i].isActive) {
+        if (HitHittable(world.objects[i], ray, Interval(rayT.min, closest), temp, world) && world.objects[i].isActive) {
             hit = true;
             closest = temp.t;
             rec = temp;
