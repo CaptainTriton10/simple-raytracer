@@ -65,6 +65,10 @@ struct Hittable {
     bool isActive;
 };
 
+struct HittableList {
+    Hittable objects[MAX_OBJECTS];
+};
+
 struct Ray {
     vec3 origin;
     vec3 direction;
@@ -424,13 +428,13 @@ bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
     }
 }
 
-bool HitWorld(Ray ray, Interval rayT, out HitRecord rec, Hittable objects[MAX_OBJECTS]) {
+bool HitWorld(Ray ray, Interval rayT, out HitRecord rec, HittableList world) {
     HitRecord temp;
     bool hit = false;
     float closest = rayT.max;
 
     for (int i = 0; i < MAX_OBJECTS; i++) {
-        if (HitHittable(objects[i], ray, Interval(rayT.min, closest), temp) && objects[i].isActive) {
+        if (HitHittable(world.objects[i], ray, Interval(rayT.min, closest), temp) && world.objects[i].isActive) {
             hit = true;
             closest = temp.t;
             rec = temp;
@@ -440,14 +444,14 @@ bool HitWorld(Ray ray, Interval rayT, out HitRecord rec, Hittable objects[MAX_OB
     return hit;
 }
 
-vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
+vec3 RayColour(Ray ray, HittableList world) {
     vec3 attenuationAccum = vec3(1.0);
     Ray currentRay = ray;
 
     for (int i = 0; i < MAX_DEPTH; i++) {
         HitRecord rec;
 
-        if (HitWorld(currentRay, Interval(0.0001, POS_INFINITY), rec, objects)) {
+        if (HitWorld(currentRay, Interval(0.0001, POS_INFINITY), rec, world)) {
             Ray scattered;
             vec3 attenuation;
             bool didScatter = false;
@@ -577,11 +581,11 @@ Hittable GetHittable(int i) {
     return object;
 }
 
-float CalculateFocusDistance(Camera camera, Hittable objects[MAX_OBJECTS]) {
+float CalculateFocusDistance(Camera camera, HittableList world) {
     Ray ray = Ray(camera.position, camera.forward);
     HitRecord rec;
 
-    if (HitWorld(ray, Interval(0.0001, POS_INFINITY), rec, objects)) {
+    if (HitWorld(ray, Interval(0.0001, POS_INFINITY), rec, world)) {
         return rec.t;
     } else {
         return 1.0;
@@ -603,26 +607,26 @@ void main() {
     camera.position = cameraCenter;
     camera.samplesPerPixel = 20;
 
-    Hittable objects[MAX_OBJECTS];
+    HittableList world;
 
     for (int i = 0; i < dataSize; i++) {
-        objects[i] = GetHittable(i);
+        world.objects[i] = GetHittable(i);
     }
 
     // Fill the rest as empty
     for (int i = 0; i < MAX_OBJECTS; i++) {
-        if (!objects[i].isActive) {
-            objects[i] = Hittable(NONE, vec4(0.0), vec4(0.0), vec4(0.0), false);
+        if (!world.objects[i].isActive) {
+            world.objects[i] = Hittable(NONE, vec4(0.0), vec4(0.0), vec4(0.0), false);
         }
     }
 
-    camera.focus = CalculateFocusDistance(camera, objects);
+    camera.focus = CalculateFocusDistance(camera, world);
 
     if (aaEnabled == 1) {
         vec3 pixelColour = vec3(0.0, 0.0, 0.0);
         for (int i = 0; i < camera.samplesPerPixel; i++) {
             Ray ray = GetRay(camera, pixelIndex, i);
-            pixelColour += RayColour(ray, objects);
+            pixelColour += RayColour(ray, world);
         }
 
         pixelColour /= camera.samplesPerPixel;
@@ -638,6 +642,6 @@ void main() {
         vec3 finalDirection = normalize(focusPoint - rayOrigin);
 
         Ray ray = Ray(rayOrigin, finalDirection);
-        finalColour = vec4(LinearToGamma(RayColour(ray, objects)), 1.0);
+        finalColour = vec4(LinearToGamma(RayColour(ray, world)), 1.0);
     }
 }
