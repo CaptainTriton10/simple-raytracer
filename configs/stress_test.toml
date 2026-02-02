@@ -1,0 +1,123 @@
+[data]
+objects = [
+  "ground",
+
+  "s1", "s2", "s3", "s4",
+  "s5", "s6", "s7", "s8",
+  "s9", "s10", "s11", "s12"
+]
+
+# -----------------
+# Geometry
+# -----------------
+
+[ground]
+position = [0.0, -100.5, 0.0]
+radius = 100.0
+material = "mat_ground"
+
+[s1]
+position = [-1.5, 0.0, -1.5]
+radius = 0.3
+material = "mat_diffuse_1"
+
+[s2]
+position = [-0.5, 0.0, -1.5]
+radius = 0.3
+material = "mat_metal_1"
+
+[s3]
+position = [0.5, 0.0, -1.5]
+radius = 0.3
+material = "mat_glass"
+
+[s4]
+position = [1.5, 0.0, -1.5]
+radius = 0.3
+material = "mat_diffuse_2"
+
+[s5]
+position = [-1.5, 0.0, -0.5]
+radius = 0.3
+material = "mat_metal_2"
+
+[s6]
+position = [-0.5, 0.0, -0.5]
+radius = 0.3
+material = "mat_diffuse_3"
+
+[s7]
+position = [0.5, 0.0, -0.5]
+radius = 0.3
+material = "mat_metal_1"
+
+[s8]
+position = [1.5, 0.0, -0.5]
+radius = 0.3
+material = "mat_diffuse_1"
+
+[s9]
+position = [-1.5, 0.0, 0.5]
+radius = 0.3
+material = "mat_glass"
+
+[s10]
+position = [-0.5, 0.0, 0.5]
+radius = 0.3
+material = "mat_diffuse_2"
+
+[s11]
+position = [0.5, 0.0, 0.5]
+radius = 0.3
+material = "mat_metal_2"
+
+[s12]
+position = [1.5, 0.0, 0.5]
+radius = 0.3
+material = "mat_diffuse_3"
+
+# -----------------
+# Materials
+# -----------------
+
+[mat_ground]
+type = 0
+albedo = [0.25, 0.25, 0.3]
+roughness = 0.0
+ior = 0.0
+
+[mat_diffuse_1]
+type = 0
+albedo = [0.7, 0.3, 0.3]
+roughness = 0.0
+ior = 0.0
+
+[mat_diffuse_2]
+type = 0
+albedo = [0.3, 0.7, 0.3]
+roughness = 0.0
+ior = 0.0
+
+[mat_diffuse_3]
+type = 0
+albedo = [0.3, 0.3, 0.7]
+roughness = 0.0
+ior = 0.0
+
+[mat_metal_1]
+type = 1
+albedo = [0.8, 0.8, 0.8]
+roughness = 0.05
+ior = 0.0
+
+[mat_metal_2]
+type = 1
+albedo = [0.8, 0.6, 0.2]
+roughness = 0.2
+ior = 0.0
+
+[mat_glass]
+type = 2
+albedo = [1.0, 1.0, 1.0]
+roughness = 0.0
+ior = 1.5

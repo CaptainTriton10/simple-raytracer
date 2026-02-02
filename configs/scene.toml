@@ -1,0 +1,50 @@
+[data]
+objects = ["ground", "glass_ball", "metal_ball", "diffuse_ball"]
+
+[ground]
+position = [0.0, -100.5, 0.0]
+radius = 100.0
+material = "mat_ground"
+
+[glass_ball]
+position = [0.0, 0.0, 0.0]
+radius = 0.5
+material = "mat_glass"
+
+[metal_ball]
+position = [-1.2, 0.0, 0.0]
+radius = 0.5
+material = "mat_metal"
+
+[diffuse_ball]
+position = [1.2, 0.0, 0.0]
+radius = 0.5
+material = "mat_diffuse"
+
+# -----------------
+# Materials
+# -----------------
+
+[mat_ground]
+type = 0            # diffuse
+albedo = [0.2, 0.2, 0.25]
+roughness = 0.0
+ior = 0.0
+
+[mat_glass]
+type = 2            # glass
+albedo = [1.0, 1.0, 1.0]
+roughness = 0.0
+ior = 0.78
+
+[mat_metal]
+type = 1            # metal
+albedo = [0.8, 0.6, 0.2]
+roughness = 0.0
+ior = 0.0
+
+[mat_diffuse]
+type = 0            # diffuse
+albedo = [0.7, 0.3, 0.3]
+roughness = 0.0
+ior = 0.0
