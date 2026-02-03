@@ -20,6 +20,8 @@ uniform float time;
 uniform sampler2D data;
 uniform int dataSize;
 
+uniform sampler2D uvTex;
+
 uniform float fov;
 uniform vec3 cameraCenter;
 
@@ -206,6 +208,12 @@ bool IntervalSurrounds(Interval interval, float x) {
     return interval.min < x && interval.max > x;
 }
 
+float IntervalClamp(Interval interval, float x) {
+    if (x < interval.min) return interval.min;
+    if (x > interval.max) return interval.max;
+    return x;
+}
+
 vec3 CheckerTexture(vec2 uv, vec3 p, float scale, vec3 even, vec3 odd) {
     float invScale = 1.0 / scale;
 
@@ -218,6 +226,20 @@ vec3 CheckerTexture(vec2 uv, vec3 p, float scale, vec3 even, vec3 odd) {
     return isEven ? even : odd;
 }
 
+vec3 ImageTextureValue(sampler2D tex, vec2 uv, vec3 p) {
+    float u = IntervalClamp(Interval(0.0, 1.0), uv.x);
+    float v = 1.0 - IntervalClamp(Interval(0.0, 1.0), uv.y);
+
+    vec2 size = textureSize(tex, 0);
+    int i = int(u * size.x);
+    int j = int(v * size.y);
+
+    vec3 pixel = texelFetch(tex, ivec2(i, j), 0).rgb;
+
+    return pixel;
+    // return vec3(float(u), float(v), 0.0);
+}
+
 bool LambertianScatter(Material mat, Ray ray, HitRecord rec, inout vec3 attenuation, inout Ray scattered) {
     vec3 scatterDirection = rec.normal + RandomUnitVec3(gl_FragCoord.xy * (gl_FragCoord.yx * time));
 
@@ -226,9 +248,11 @@ bool LambertianScatter(Material mat, Ray ray, HitRecord rec, inout vec3 attenuat
     }
 
     scattered = Ray(rec.pos, scatterDirection);
-    attenuation = CheckerTexture(rec.uv, rec.pos, 0.15,
-        vec3(0.05, 0.05, 0.1),
-        vec3(0.83, 0.8, 0.8));
+    // attenuation = CheckerTexture(rec.uv, rec.pos, 0.15,
+    //     vec3(0.05, 0.05, 0.1),
+    //     vec3(0.83, 0.8, 0.8));
+    //
+    attenuation = ImageTextureValue(uvTex, rec.uv, rec.pos);
 
     return true;
 }
@@ -304,7 +328,7 @@ bool HitSphere(Sphere sphere, Ray ray, Interval rayT, inout HitRecord rec) {
     temp.material = sphere.material;
     vec3 outwardNormal = (temp.pos - sphere.pos) / sphere.radius;
 
-    GetSphereUV(outwardNormal, rec.uv);
+    GetSphereUV(outwardNormal, temp.uv);
     SetFaceNormal(temp, ray, outwardNormal);
 
     rec = temp;

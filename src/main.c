@@ -176,6 +176,9 @@ int main(int argc, char *argv[]) {
     RenderTexture accA = LoadRenderTexture(screenWidth, screenHeight);
     RenderTexture accB = LoadRenderTexture(screenWidth, screenHeight);
 
+    Image uvImg = LoadImage("uv.jpg");
+    Texture2D uvTex = LoadTextureFromImage(uvImg);
+
     bool useA = true;
 
     float yaw = -90.0f * DEG2RAD;
@@ -221,12 +224,15 @@ int main(int argc, char *argv[]) {
 
         SetRaytracerValues(raytracing, raytracerLocs, raytracerValues);
 
+
         int dataLoc = GetShaderLocation(raytracing, "data");
+        int uvTexLoc = GetShaderLocation(raytracing, "uvTex");
 
         BeginTextureMode(prevFrame);
             ClearBackground(BLACK);
             BeginShaderMode(raytracing);
                 SetShaderValueTexture(raytracing, dataLoc, data);   // The data must be loaded here
+                SetShaderValueTexture(raytracing, uvTexLoc, uvTex);
                 DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), WHITE);
             EndShaderMode();
         EndTextureMode();
