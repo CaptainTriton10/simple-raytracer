@@ -8,9 +8,10 @@
 #define DIELECTRIC 2
 
 #define MAX_OBJECTS 4
-#define POS_INFINITY 100000000
-
 #define MAX_DEPTH 5
+
+#define POS_INFINITY 100000000
+#define PI 3.1415926
 
 out vec4 finalColour;
 uniform vec2 resolution;
@@ -41,6 +42,7 @@ struct HitRecord {
     Material material;
     float t;
     bool frontFace;
+    vec2 uv;
 };
 
 struct Interval {
@@ -204,6 +206,18 @@ bool IntervalSurrounds(Interval interval, float x) {
     return interval.min < x && interval.max > x;
 }
 
+vec3 CheckerTexture(vec2 uv, vec3 p, float scale, vec3 even, vec3 odd) {
+    float invScale = 1.0 / scale;
+
+    int xInteger = int(floor(invScale * p.x));
+    int yInteger = int(floor(invScale * p.y));
+    int zInteger = int(floor(invScale * p.z));
+
+    bool isEven = (xInteger + yInteger + zInteger) % 2 == 0;
+
+    return isEven ? even : odd;
+}
+
 bool LambertianScatter(Material mat, Ray ray, HitRecord rec, inout vec3 attenuation, inout Ray scattered) {
     vec3 scatterDirection = rec.normal + RandomUnitVec3(gl_FragCoord.xy * (gl_FragCoord.yx * time));
 
@@ -212,7 +226,9 @@ bool LambertianScatter(Material mat, Ray ray, HitRecord rec, inout vec3 attenuat
     }
 
     scattered = Ray(rec.pos, scatterDirection);
-    attenuation = mat.albedo;
+    attenuation = CheckerTexture(rec.uv, rec.pos, 0.15,
+        vec3(0.05, 0.05, 0.1),
+        vec3(0.83, 0.8, 0.8));
 
     return true;
 }
@@ -252,6 +268,14 @@ void SetFaceNormal(inout HitRecord rec, Ray ray, vec3 outwardNormal) {
     rec.normal = rec.frontFace ? outwardNormal : -outwardNormal;
 }
 
+void GetSphereUV(vec3 p, out vec2 uv) {
+    float theta = acos(-p.y);
+    float phi = atan(-p.z, p.x) + PI;
+
+    uv.x = phi / (2.0 * PI);
+    uv.y = theta / PI;
+}
+
 bool HitSphere(Sphere sphere, Ray ray, Interval rayT, inout HitRecord rec) {
     vec3 oc = sphere.pos - ray.origin;
 
@@ -280,6 +304,7 @@ bool HitSphere(Sphere sphere, Ray ray, Interval rayT, inout HitRecord rec) {
     temp.material = sphere.material;
     vec3 outwardNormal = (temp.pos - sphere.pos) / sphere.radius;
 
+    GetSphereUV(outwardNormal, rec.uv);
     SetFaceNormal(temp, ray, outwardNormal);
 
     rec = temp;
@@ -472,7 +497,7 @@ void main() {
 
     Camera camera;
     camera.pixelSamplesScale = 1.0 / camera.samplesPerPixel;
-    camera.defocusAngle = 2.0;
+    camera.defocusAngle = 0.4;
 
     camera.forward = forward;
     camera.right = right;

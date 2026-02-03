@@ -35,7 +35,7 @@ ior = 0.0
 type = 2            # glass
 albedo = [1.0, 1.0, 1.0]
 roughness = 0.0
-ior = 0.78
+ior = 1.33
 
 [mat_metal]
 type = 1            # metal
