@@ -180,7 +180,7 @@ float Reflectance(float cosine, float ior) {
     float r0 = (1.0 - ior) / (1.0 + ior);
     r0 = r0 * r0;
 
-    return r0 + (1.0 - r0) * pow((1 - cosine), 5);
+    return r0 + (1.0 - r0) * pow((1.0 - cosine), 5.0);
 }
 
 bool NearZero(vec3 a) {
@@ -234,13 +234,13 @@ bool DielectricScatter(Material mat, Ray ray, HitRecord rec, inout vec3 attenuat
     float cosTheta = min(dot(-unitDirection, rec.normal), 1.0);
     float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
 
-    bool cannotRefract = mat.ior * sinTheta > 1.0;
+    bool cannotRefract = ri * sinTheta > 1.0;
     vec3 direction = vec3(0.0);
 
     if (cannotRefract || Reflectance(cosTheta, mat.ior) > Random(gl_FragCoord.xy * (gl_FragCoord.yx * time))) {
         direction = Reflect(unitDirection, rec.normal);
     } else {
-        direction = Refract(unitDirection, rec.normal, mat.ior);
+        direction = Refract(unitDirection, rec.normal, ri);
     }
 
     scattered = Ray(rec.pos, direction);
