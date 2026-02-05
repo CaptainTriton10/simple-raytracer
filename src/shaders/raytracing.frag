@@ -6,6 +6,7 @@
 #define LAMBERTIAN 0
 #define METAL 1
 #define DIELECTRIC 2
+#define EMISSIVE 3
 
 #define MAX_OBJECTS 4
 #define MAX_DEPTH 5
@@ -34,6 +35,7 @@ uniform int aaEnabled;
 struct Material {
     int type;
     vec3 albedo;
+    vec3 emission;
     float roughness;
     float ior;
 };
@@ -237,7 +239,6 @@ vec3 ImageTextureValue(sampler2D tex, vec2 uv, vec3 p) {
     vec3 pixel = texelFetch(tex, ivec2(i, j), 0).rgb;
 
     return pixel;
-    // return vec3(float(u), float(v), 0.0);
 }
 
 bool LambertianScatter(Material mat, Ray ray, HitRecord rec, inout vec3 attenuation, inout Ray scattered) {
@@ -248,10 +249,7 @@ bool LambertianScatter(Material mat, Ray ray, HitRecord rec, inout vec3 attenuat
     }
 
     scattered = Ray(rec.pos, scatterDirection);
-    // attenuation = CheckerTexture(rec.uv, rec.pos, 0.15,
-    //     vec3(0.05, 0.05, 0.1),
-    //     vec3(0.83, 0.8, 0.8));
-    //
+
     attenuation = ImageTextureValue(uvTex, rec.uv, rec.pos);
 
     return true;
@@ -341,6 +339,7 @@ bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
         Material mat = Material(
                 int(object.data1.x), // Material type
                 object.data1.yzw, // Albedo
+                vec3(5.0),
                 object.data2.x, // Roughness
                 object.data2.y // IOR
             );
@@ -380,6 +379,8 @@ vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
             vec3 attenuation;
             bool didScatter = false;
 
+            vec3 emissiveColour = vec3(0.0);
+
             if (rec.material.type == LAMBERTIAN) {
                 didScatter = LambertianScatter(
                         rec.material,
@@ -404,6 +405,8 @@ vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
                         attenuation,
                         scattered
                     );
+            } else if (rec.material.type == EMISSIVE) {
+                return attenuationAccum * rec.material.emission;
             } else {
                 didScatter = false;
             }
@@ -412,10 +415,11 @@ vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
                 return vec3(0.0);
             }
 
-            attenuationAccum *= attenuation;
+            vec3 scatterColour = attenuation * attenuationAccum;
+            attenuationAccum = scatterColour + emissiveColour;
             currentRay = scattered;
         } else {
-            vec3 unitDirection = normalize(ray.direction);
+            vec3 unitDirection = normalize(currentRay.direction);
             float a = 0.5 * (unitDirection.y + 1.0f);
 
             vec3 sky = mix(
@@ -536,6 +540,8 @@ void main() {
     for (int i = 0; i < dataSize; i++) {
         objects[i] = GetHittable(i);
     }
+
+    objects[1].data1.x = 3;
 
     // Fill the rest as empty
     for (int i = 0; i < MAX_OBJECTS; i++) {
