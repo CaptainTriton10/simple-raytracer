@@ -64,21 +64,52 @@ Sphere GetObjectParams(toml_result_t table, char *name) {
     toml_datum_t materialT = GetConfigParam(table, name, "material", TOML_STRING);
     char *matName = _strdup(materialT.u.s);
 
-    toml_datum_t typeT = GetConfigParam(table, matName, "type", TOML_INT64);
+    toml_datum_t typeT = GetConfigParam(table, matName, "type", TOML_STRING);
+    char *typeS = _strdup(typeT.u.s);
+    int type = 0;
 
-    float albedo[3];
-    GetConfigVec3(table, albedo, matName, "albedo");
+    float albedo[3] = {0.0f, 0.0f, 0.0f};
+    float emission[3] = {0.0f, 0.0f, 0.0f};
 
-    float emission[3];
-    GetConfigVec3(table, emission, matName, "emission");
+    float roughness = 0.0f;
+    float ior = 0.0f;
 
-    toml_datum_t roughnessT = GetConfigParam(table, matName, "roughness", TOML_FP64);
-    toml_datum_t iorT = GetConfigParam(table, matName, "ior", TOML_FP64);
+    if (strcmp(TextToUpper(typeS), "DIFFUSE") == 0) {
+        type = LAMBERTIAN;
+
+        GetConfigVec3(table, albedo, matName, "albedo");
+
+    } else if (strcmp(TextToUpper(typeS), "METAL") == 0) {
+        type = METAL;
+
+        GetConfigVec3(table, albedo, matName, "albedo");
+        toml_datum_t roughnessT = GetConfigParam(table, matName, "roughness", TOML_FP64);
+
+        roughness = roughnessT.u.fp64;
+
+    } else if (strcmp(TextToUpper(typeS), "GLASS") == 0) {
+        type = DIELECTRIC;
+
+        toml_datum_t iorT = GetConfigParam(table, matName, "ior", TOML_FP64);
+
+        ior = iorT.u.fp64;
+
+    } else if (strcmp(TextToUpper(typeS), "EMISSIVE") == 0) {
+        type = EMISSIVE;
+
+        GetConfigVec3(table, emission, matName, "emission");
+
+    } else {
+        char errMsg[128];
+        sprintf(errMsg, "Unknown %s.type property [%s]", matName, typeS);
+
+        error(errMsg);
+    }
 
     ShaderMaterial material = {
-        .type = typeT.u.int64,
-        .roughness = roughnessT.u.fp64,
-        .ior = iorT.u.fp64
+        .type = type,
+        .roughness = roughness,
+        .ior = ior
     };
 
     memcpy(material.albedo, albedo, sizeof(albedo));
@@ -92,6 +123,8 @@ Sphere GetObjectParams(toml_result_t table, char *name) {
     memcpy(obj.pos, position, sizeof(position));
 
     free(matName);
+    free(typeS);
+
     return obj;
 }
 

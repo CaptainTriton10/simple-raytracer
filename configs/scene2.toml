@@ -26,22 +26,13 @@ material = "blue"
 # -----------------
 
 [orange]
-type = 3
-albedo = [0.0, 0.0, 0.0]
+type = "emissive"
 emission = [5.0, 1.0, 0.3]
-roughness = 0.0
-ior = 0.0
 
 [diffuse]
-type = 0
+type = "diffuse"
 albedo = [1.0, 1.0, 1.0]
-emission = [0.0, 0.0, 0.0]
-roughness = 0.0
-ior = 0.0
 
 [blue]
-type = 3
-albedo = [0.0, 0.0, 0.0]
+type = "emissive"
 emission = [0.3, 1.0, 5.0]
-roughness = 0.0
-ior = 0.0
