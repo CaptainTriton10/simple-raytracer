@@ -69,6 +69,9 @@ Sphere GetObjectParams(toml_result_t table, char *name) {
     float albedo[3];
     GetConfigVec3(table, albedo, matName, "albedo");
 
+    float emission[3];
+    GetConfigVec3(table, emission, matName, "emission");
+
     toml_datum_t roughnessT = GetConfigParam(table, matName, "roughness", TOML_FP64);
     toml_datum_t iorT = GetConfigParam(table, matName, "ior", TOML_FP64);
 
@@ -79,6 +82,7 @@ Sphere GetObjectParams(toml_result_t table, char *name) {
     };
 
     memcpy(material.albedo, albedo, sizeof(albedo));
+    memcpy(material.emission, emission, sizeof(emission));
 
     Sphere obj = {
         .radius = radiusT.u.fp64,

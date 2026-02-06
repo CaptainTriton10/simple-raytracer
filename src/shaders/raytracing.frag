@@ -61,13 +61,12 @@ Sphere:
     data0   xyz = pos, w = radius
     data1   x = scatter type, yzw = albedo
     data2   x = roughness, y = ior
+    data3   xyz = emission
 
 */
 struct Hittable {
     int type;
-    vec4 data0;
-    vec4 data1;
-    vec4 data2;
+    vec4 data0, data1, data2, data3;
     bool isActive;
 };
 
@@ -339,7 +338,7 @@ bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
         Material mat = Material(
                 int(object.data1.x), // Material type
                 object.data1.yzw, // Albedo
-                vec3(5.0),
+                object.data3.xyz, // Emission
                 object.data2.x, // Roughness
                 object.data2.y // IOR
             );
@@ -504,7 +503,8 @@ Hittable GetHittable(int i) {
 
     object.data0 = texelFetch(data, ivec2(1, i), 0);
     object.data1 = texelFetch(data, ivec2(2, i), 0);
-    object.data2 = vec4(texelFetch(data, ivec2(3, i), 0).xy, 0.0, 0.0);
+    object.data2 = texelFetch(data, ivec2(3, i), 0);
+    object.data3 = texelFetch(data, ivec2(4, i), 0);
 
     return object;
 }
@@ -541,12 +541,10 @@ void main() {
         objects[i] = GetHittable(i);
     }
 
-    objects[1].data1.x = 3;
-
     // Fill the rest as empty
     for (int i = 0; i < MAX_OBJECTS; i++) {
         if (!objects[i].isActive) {
-            objects[i] = Hittable(NONE, vec4(0.0), vec4(0.0), vec4(0.0), false);
+            objects[i] = Hittable(NONE, vec4(0.0), vec4(0.0), vec4(0.0), vec4(0.0), false);
         }
     }
 

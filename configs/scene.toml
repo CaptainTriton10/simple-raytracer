@@ -28,23 +28,27 @@ material = "mat_diffuse"
 [mat_ground]
 type = 0            # diffuse
 albedo = [0.2, 0.2, 0.25]
+emission = [0.0, 0.0, 0.0]
 roughness = 0.0
 ior = 0.0
 
 [mat_glass]
-type = 2            # glass
+type = 3            # glass
 albedo = [1.0, 1.0, 1.0]
+emission = [0.0, 4.0, 6.0]
 roughness = 0.0
 ior = 1.33
 
 [mat_metal]
 type = 1            # metal
 albedo = [0.8, 0.6, 0.2]
+emission = [0.0, 0.0, 0.0]
 roughness = 0.0
 ior = 0.0
 
 [mat_diffuse]
 type = 0            # diffuse
 albedo = [0.7, 0.3, 0.3]
+emission = [0.0, 0.0, 0.0]
 roughness = 0.0
 ior = 0.0

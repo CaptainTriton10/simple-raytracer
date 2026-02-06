@@ -1,0 +1,47 @@
+[data]
+objects = ["ground", "orange_ball", "ball", "blue_ball"]
+
+[ground]
+position = [0.0, -100.5, 0.0]
+radius = 100.0
+material = "diffuse"
+
+[orange_ball]
+position = [-1.0, 0.0, 0.0]
+radius = 0.5
+material = "orange"
+
+[ball]
+position = [0.0, 0.0, 0.0]
+radius = 0.25
+material = "diffuse"
+
+[blue_ball]
+position = [1.0, 0.0, 0.0]
+radius = 0.5
+material = "blue"
+
+# -----------------
+# Materials
+# -----------------
+
+[orange]
+type = 3
+albedo = [0.0, 0.0, 0.0]
+emission = [5.0, 1.0, 0.3]
+roughness = 0.0
+ior = 0.0
+
+[diffuse]
+type = 0
+albedo = [1.0, 1.0, 1.0]
+emission = [0.0, 0.0, 0.0]
+roughness = 0.0
+ior = 0.0
+
+[blue]
+type = 3
+albedo = [0.0, 0.0, 0.0]
+emission = [0.3, 1.0, 5.0]
+roughness = 0.0
+ior = 0.0

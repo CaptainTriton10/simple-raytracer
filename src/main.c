@@ -8,7 +8,7 @@
 #include <string.h>
 
 #define MAX_OBJECTS 4
-#define DATA_WIDTH 4
+#define DATA_WIDTH 5
 
 // On Windows, target dedicated GPU with NVIDIA Optimus and AMD PowerXpress/Switchable Graphics
 #ifdef _WIN32
@@ -41,6 +41,8 @@
  *      (3, 0):
  *          r = roughness
  *          g = ior
+ *      (4, 0):
+ *          rgb = emission
  */
 
 Texture2D CreateSphereData(Sphere spheres[], size_t len) {
@@ -51,7 +53,7 @@ Texture2D CreateSphereData(Sphere spheres[], size_t len) {
         int base = i * DATA_WIDTH * 4;
 
         // (0, 0)
-        data[base + 0] = 0; // Sphere type
+        data[base + 0] = SPHERE;
         data[base + 1] = 0.0f; // Empty (unused)
         data[base + 2] = 0.0f;
         data[base + 3] = 0.0f;
@@ -73,6 +75,12 @@ Texture2D CreateSphereData(Sphere spheres[], size_t len) {
         data[base + 13] = spheres[i].material.ior;
         data[base + 14] = 0.0f;
         data[base + 15] = 0.0f;
+
+        // (4, 0)
+        data[base + 16] = spheres[i].material.emission[0];
+        data[base + 17] = spheres[i].material.emission[1];
+        data[base + 18] = spheres[i].material.emission[2];
+        data[base + 19] = 0.0f;
     }
 
     Image dataImage = {

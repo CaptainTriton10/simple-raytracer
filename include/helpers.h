@@ -5,9 +5,17 @@
 #include "../include/tomlc17.h"
 #include <stddef.h>
 
+#define SPHERE 0
+
+#define LAMBERTIAN 0
+#define METAL 1
+#define DIELECTRIC 2
+#define EMISSIVE 3
+
 typedef struct ShaderMaterial {
     int type;
     float albedo[3];
+    float emission[3];
     float roughness;
     float ior;
 } ShaderMaterial;
