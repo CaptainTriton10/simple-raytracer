@@ -1,4 +1,5 @@
 #include "../include/helpers.h"
+#include "../include/bvh.h"
 #include "raylib.h"
 #include "../include/tomlc17.h"
 #include <math.h>
@@ -9,6 +10,7 @@
 
 #define MAX_OBJECTS 4
 #define DATA_WIDTH 5
+#define BVH_DATA_WIDTH 3
 
 // On Windows, target dedicated GPU with NVIDIA Optimus and AMD PowerXpress/Switchable Graphics
 #ifdef _WIN32
@@ -99,6 +101,45 @@ Texture2D CreateSphereData(Sphere spheres[], size_t len) {
     return dataTexture;
 }
 
+Texture2D CreateBVHData(BVHNode nodes[], size_t nodeCount) {
+    size_t dataSize = nodeCount * BVH_DATA_WIDTH * 4;
+    float *data = malloc(dataSize * sizeof(float));
+
+    for (int i = 0; i < nodeCount; i++) {
+        int base = i * BVH_DATA_WIDTH * 4;
+
+        data[base + 0] = nodes[i].bbox.x.min;
+        data[base + 1] = nodes[i].bbox.y.min;
+        data[base + 2] = nodes[i].bbox.z.min;
+        data[base + 3] = 0.0f;
+
+        data[base + 4] = nodes[i].bbox.x.max;
+        data[base + 5] = nodes[i].bbox.y.max;
+        data[base + 6] = nodes[i].bbox.z.max;
+        data[base + 7] = 0.0f;
+
+        data[base + 8] = nodes[i].left.type;
+        data[base + 9] = nodes[i].left.index;
+        data[base + 10] = nodes[i].right.type;
+        data[base + 11] = nodes[i].right.index;
+    }
+
+    Image dataImage = {
+        .data = data,
+        .width = BVH_DATA_WIDTH,
+        .height = nodeCount,
+        .mipmaps = 1,
+        .format = PIXELFORMAT_UNCOMPRESSED_R32G32B32A32
+    };
+
+    Texture2D dataTexture = LoadTextureFromImage(dataImage);
+
+    SetTextureFilter(dataTexture, TEXTURE_FILTER_POINT);
+    SetTextureWrap(dataTexture, TEXTURE_WRAP_CLAMP);
+
+    return dataTexture;
+}
+
 Scene ParseSceneConfig(const char *filename) {
     toml_result_t result = toml_parse_file_ex(filename);
 
@@ -139,6 +180,19 @@ Scene ParseSceneConfig(const char *filename) {
     return scene;
 }
 
+void CreateBVH(Scene *scene) {
+    printf("Creating BVH...\n");
+
+    ComputeWorldBBoxes(scene);
+
+    scene->nodes = malloc(sizeof(BVHNode) * (2 * scene->objCount));
+    scene->nodeCount = 0;
+
+    int root = InitBVHNode(scene, 0, scene->objCount);
+
+    printf("BVH created: %d nodes\n", scene->nodeCount);
+}
+
 int main(int argc, char *argv[]) {
     Scene scene;
 
@@ -150,6 +204,8 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Incorrect number of arguments (%d).", argc);
         exit(1);
     }
+
+    CreateBVH(&scene);
 
     RenderSettings settings = {
         .aaEnabled = 0,
@@ -173,6 +229,7 @@ int main(int argc, char *argv[]) {
     SetTargetFPS(100);
 
     Texture2D data = CreateSphereData(scene.objects, scene.objCount);
+    Texture2D bvhData = CreateBVHData(scene.nodes, scene.nodeCount);
 
     Shader raytracing = LoadShader(0, "src/shaders/raytracing.frag");
     Shader denoiser = LoadShader(0, "src/shaders/denoise.frag");
@@ -234,12 +291,14 @@ int main(int argc, char *argv[]) {
 
 
         int dataLoc = GetShaderLocation(raytracing, "data");
+        int bvhDataLoc = GetShaderLocation(raytracing, "bvhData");
         int uvTexLoc = GetShaderLocation(raytracing, "uvTex");
 
         BeginTextureMode(prevFrame);
             ClearBackground(BLACK);
             BeginShaderMode(raytracing);
                 SetShaderValueTexture(raytracing, dataLoc, data);   // The data must be loaded here
+                SetShaderValueTexture(raytracing, bvhDataLoc, bvhData);
                 SetShaderValueTexture(raytracing, uvTexLoc, uvTex);
                 DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), WHITE);
             EndShaderMode();
