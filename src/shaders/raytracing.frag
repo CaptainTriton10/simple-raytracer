@@ -355,7 +355,7 @@ bool HitAABB(vec3 minB, vec3 maxB, Ray ray, float tMin, float tMax) {
     vec3 tbigger = max(t0, t1);
 
     tMin = max(tMin, max(tsmaller.x, max(tsmaller.y, tsmaller.z)));
-    tMax = max(tMax, min(tbigger.x, max(tbigger.y, tbigger.z)));
+    tMax = min(tMax, min(tbigger.x, min(tbigger.y, tbigger.z)));
 
     return tMax >= tMin;
 }
@@ -426,6 +426,11 @@ BVHNode GetBVHNode(int i) {
     return node;
 }
 
+float NodeCenterDistance(BVHNode n, Ray ray) {
+    vec3 center = (n.minB + n.maxB) / 2.0;
+    return dot(center - ray.origin, ray.direction);
+}
+
 bool HitBVH(Ray ray, out HitRecord rec) {
     bool hitAnything = false;
     float closest = POS_INFINITY;
@@ -441,10 +446,17 @@ bool HitBVH(Ray ray, out HitRecord rec) {
 
         if (!HitAABB(node.minB, node.maxB, ray, 0.001, closest)) continue;
 
-        // Left
-        if (node.leftType == BVH) {
-            stack[sp++] = node.leftIndex;
-        } else if (node.leftType == SPHERE) {
+        if (node.leftType == BVH && node.rightType == BVH) {
+            BVHNode left = GetBVHNode(node.leftIndex);
+            BVHNode right = GetBVHNode(node.rightIndex);
+
+            bool leftFirst = NodeCenterDistance(left, ray) < NodeCenterDistance(right, ray);
+
+            stack[sp++] = leftFirst ? node.rightIndex : node.leftIndex;
+            stack[sp++] = leftFirst ? node.leftIndex : node.rightIndex;
+        }
+
+        if (node.leftType == SPHERE) {
             HitRecord temp;
 
             if (HitHittable(GetHittable(node.leftIndex), ray, Interval(0.001, closest), temp)) {
@@ -454,10 +466,7 @@ bool HitBVH(Ray ray, out HitRecord rec) {
             }
         }
 
-        // Right
-        if (node.rightType == BVH) {
-            stack[sp++] = node.rightIndex;
-        } else if (node.rightType == SPHERE) {
+        if (node.rightType == SPHERE) {
             HitRecord temp;
 
             if (HitHittable(GetHittable(node.rightIndex), ray, Interval(0.001, closest), temp)) {

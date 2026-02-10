@@ -69,6 +69,15 @@ Interval AxisInterval(AABB aabb, int n) {
     return aabb.x;
 }
 
+int LongestAxis(AABB aabb) {
+    float xSize = aabb.x.max - aabb.x.min;
+    float ySize = aabb.y.max - aabb.y.min;
+    float zSize = aabb.z.max - aabb.z.min;
+
+    if (xSize > ySize) return xSize > zSize ? 0 : 2;
+    else return ySize > zSize ? 1 : 2;
+}
+
 int BoxCompare(void *context, const void *a, const void *b) {
     int axis = *(int*) context;
     Sphere *sa = (Sphere*) a;
@@ -83,14 +92,14 @@ int BoxCompare(void *context, const void *a, const void *b) {
 }
 
 int InitBVHNode(Scene *scene, size_t start, size_t end) {
-    int axis = GetRandomValue(0, 2);
-
     int nodeIndex = scene->nodeCount++;
     BVHNode *node = &scene->nodes[nodeIndex];
 
     size_t objectSpan = end - start;
 
     AABB spanBox = ComputeSpanBBox(scene, start, end);
+    int axis = LongestAxis(spanBox);
+
     node->bbox = spanBox;
 
     if (objectSpan == 1) {
