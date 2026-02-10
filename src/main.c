@@ -3,6 +3,7 @@
 #include "raylib.h"
 #include "../include/tomlc17.h"
 #include <math.h>
+#include <time.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -182,6 +183,7 @@ Scene ParseSceneConfig(const char *filename) {
 
 void CreateBVH(Scene *scene) {
     printf("Creating BVH...\n");
+    double startTime = GetTime();
 
     ComputeWorldBBoxes(scene);
 
@@ -191,6 +193,8 @@ void CreateBVH(Scene *scene) {
     int root = InitBVHNode(scene, 0, scene->objCount);
 
     printf("BVH created: %d nodes\n", scene->nodeCount);
+    double totalTime = (GetTime() - startTime) * 1000;
+    printf("BVH creation time: %fms\n", totalTime);
 }
 
 int main(int argc, char *argv[]) {
@@ -253,8 +257,9 @@ int main(int argc, char *argv[]) {
 
     int frame = 0;
     while (!WindowShouldClose()) {    // Detect window close button or ESC key
+        double startTime1 = GetTime();
         float res[2] = { (float)GetScreenWidth(), (float)GetScreenHeight() };
-        float time = GetTime();
+        float time_s = GetTime();
 
         BasisVectors vectors = Look(&yaw, &pitch);
 
@@ -268,7 +273,7 @@ int main(int argc, char *argv[]) {
         float pos[3] = {camera.position.x, camera.position.y, camera.position.z};
 
         RaytracerShaderValues raytracerValues = {
-            .time = time,
+            .time = time_s,
             .resolution = res,
             .dataSize = scene.objCount,
             .fov = camera.fovy,
@@ -288,7 +293,6 @@ int main(int argc, char *argv[]) {
         }
 
         SetRaytracerValues(raytracing, raytracerLocs, raytracerValues);
-
 
         int dataLoc = GetShaderLocation(raytracing, "data");
         int bvhDataLoc = GetShaderLocation(raytracing, "bvhData");
@@ -353,6 +357,8 @@ int main(int argc, char *argv[]) {
         }
 
         frame++;
+        double totalTime = GetTime() - startTime1;
+        printf("Total frame time: %fms [%.1ffps]\n\n", totalTime * 1000, 1.0f / totalTime);
     }
 
     CloseWindow();

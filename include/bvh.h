@@ -109,7 +109,6 @@ int InitBVHNode(Scene *scene, size_t start, size_t end) {
         node->left = (HittableRef) {HITTABLE_SPHERE, start};
         node->right = (HittableRef) {HITTABLE_SPHERE, start + 1};
     } else {
-        printf("%d\n", nodeIndex);
         qsort_s(&scene->objects[start], objectSpan, sizeof(Sphere), BoxCompare, &axis);
 
         int mid = start + objectSpan / 2.0f;
