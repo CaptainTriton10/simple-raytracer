@@ -61,9 +61,13 @@ typedef struct Scene {
 } Scene;
 
 typedef struct RenderSettings {
-    int aaEnabled;
     int width;
     int height;
+    int fullscreen;
+    float fovLimits[2];
+    float fov;
+    float cameraPosition[3];
+    int aaEnabled;
 } RenderSettings;
 
 typedef struct RaytracerShaderValues {
@@ -115,6 +119,7 @@ void SceneFree(Scene *scene);
 
 toml_datum_t GetConfigParam(toml_result_t table, char *section, char *item, toml_type_t type);
 void GetConfigVec3(toml_result_t table, float *vec, char *section, char *item);
+void GetConfigVec2(toml_result_t table, float *vec, char *section, char *item);
 Sphere GetObjectParams(toml_result_t table, char *name);
 
 RaytracerShaderLocations GetRaytracerLocations(Shader shader);
@@ -128,7 +133,7 @@ void NormaliseVec3(float v[3]);
 void CrossVec3(float v[3], float a[3], float b[3]);
 
 bool Movement(Camera *camera, BasisVectors vectors);
-bool Zoom(Camera *camera);
+bool Zoom(Camera *camera, RenderSettings settings);
 BasisVectors Look(float *yaw, float *pitch);
 
 bool Settings(RenderSettings *settings);
