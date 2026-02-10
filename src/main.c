@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_OBJECTS 4
+#define MAX_OBJECTS 13
 #define DATA_WIDTH 5
 #define BVH_DATA_WIDTH 3
 
@@ -217,7 +217,7 @@ int main(int argc, char *argv[]) {
     const int screenWidth = settings.width;
     const int screenHeight = (int)(screenWidth / aspectRatio);
 
-    SetConfigFlags(FLAG_FULLSCREEN_MODE);
+    // SetConfigFlags(FLAG_FULLSCREEN_MODE);
 
     InitWindow(screenWidth, screenHeight, "Simple Raytracer");
 

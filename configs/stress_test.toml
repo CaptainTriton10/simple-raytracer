@@ -81,43 +81,31 @@ material = "mat_diffuse_3"
 # -----------------
 
 [mat_ground]
-type = 0
+type = "diffuse"
 albedo = [0.25, 0.25, 0.3]
-roughness = 0.0
-ior = 0.0
 
 [mat_diffuse_1]
-type = 0
+type = "diffuse"
 albedo = [0.7, 0.3, 0.3]
-roughness = 0.0
-ior = 0.0
 
 [mat_diffuse_2]
-type = 0
+type = "diffuse"
 albedo = [0.3, 0.7, 0.3]
-roughness = 0.0
-ior = 0.0
 
 [mat_diffuse_3]
-type = 0
+type = "diffuse"
 albedo = [0.3, 0.3, 0.7]
-roughness = 0.0
-ior = 0.0
 
 [mat_metal_1]
-type = 1
+type = "metal"
 albedo = [0.8, 0.8, 0.8]
 roughness = 0.05
-ior = 0.0
 
 [mat_metal_2]
-type = 1
+type = "metal"
 albedo = [0.8, 0.6, 0.2]
 roughness = 0.2
-ior = 0.0
 
 [mat_glass]
-type = 2
-albedo = [1.0, 1.0, 1.0]
-roughness = 0.0
+type = "glass"
 ior = 1.5
