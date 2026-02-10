@@ -12,6 +12,31 @@
 #define DIELECTRIC 2
 #define EMISSIVE 3
 
+typedef struct Interval {
+    float min;
+    float max;
+} Interval;
+
+typedef enum {
+    HITTABLE_SPHERE,
+    HITTABLE_BVH_NODE
+} HittableType;
+
+typedef struct {
+    HittableType type;
+    int index;
+} HittableRef;
+
+typedef struct AABB {
+    Interval x, y, z;
+} AABB;
+
+typedef struct BVHNode {
+    AABB bbox;
+    HittableRef left;
+    HittableRef right;
+} BVHNode;
+
 typedef struct ShaderMaterial {
     int type;
     float albedo[3];
@@ -24,11 +49,15 @@ typedef struct Sphere {
     float pos[3];
     float radius;
     ShaderMaterial material;
+    AABB bbox;
 } Sphere;
 
 typedef struct Scene {
     Sphere *objects;
     size_t objCount;
+    AABB bbox;
+    int nodeCount;
+    BVHNode *nodes;
 } Scene;
 
 typedef struct RenderSettings {

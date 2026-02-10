@@ -1,6 +1,7 @@
 #version 330
 
 #define SPHERE 0
+#define BVH 1
 #define NONE -1
 
 #define LAMBERTIAN 0
@@ -8,7 +9,8 @@
 #define DIELECTRIC 2
 #define EMISSIVE 3
 
-#define MAX_OBJECTS 4
+#define MAX_OBJECTS 13
+#define MAX_BVH_STACK 8
 #define MAX_DEPTH 5
 
 #define POS_INFINITY 100000000
@@ -20,6 +22,8 @@ uniform float time;
 
 uniform sampler2D data;
 uniform int dataSize;
+
+uniform sampler2D bvhData;
 
 uniform sampler2D uvTex;
 
@@ -52,6 +56,15 @@ struct HitRecord {
 struct Interval {
     float min;
     float max;
+};
+
+struct BVHNode {
+    vec3 minB;
+    vec3 maxB;
+    int leftType;
+    int leftIndex;
+    int rightType;
+    int rightIndex;
 };
 
 /*
@@ -333,6 +346,20 @@ bool HitSphere(Sphere sphere, Ray ray, Interval rayT, inout HitRecord rec) {
     return true;
 }
 
+bool HitAABB(vec3 minB, vec3 maxB, Ray ray, float tMin, float tMax) {
+    vec3 invD = 1.0 / ray.direction;
+    vec3 t0 = (minB - ray.origin) * invD;
+    vec3 t1 = (maxB - ray.origin) * invD;
+
+    vec3 tsmaller = min(t0, t1);
+    vec3 tbigger = max(t0, t1);
+
+    tMin = max(tMin, max(tsmaller.x, max(tsmaller.y, tsmaller.z)));
+    tMax = min(tMax, min(tbigger.x, min(tbigger.y, tbigger.z)));
+
+    return tMax >= tMin;
+}
+
 bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
     if (object.type == SPHERE) {
         Material mat = Material(
@@ -347,6 +374,7 @@ bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
         return HitSphere(sphere, ray, rayT, rec);
     } else if (object.type == NONE) {
         // Do nothing
+        return false;
     }
 }
 
@@ -366,6 +394,92 @@ bool HitWorld(Ray ray, Interval rayT, out HitRecord rec, Hittable objects[MAX_OB
     return hit;
 }
 
+Hittable GetHittable(int i) {
+    Hittable object;
+
+    object.type = int(texelFetch(data, ivec2(0, i), 0).x);
+    object.isActive = true;
+
+    object.data0 = texelFetch(data, ivec2(1, i), 0);
+    object.data1 = texelFetch(data, ivec2(2, i), 0);
+    object.data2 = texelFetch(data, ivec2(3, i), 0);
+    object.data3 = texelFetch(data, ivec2(4, i), 0);
+
+    return object;
+}
+
+BVHNode GetBVHNode(int i) {
+    vec4 t0 = texelFetch(bvhData, ivec2(0, i), 0);
+    vec4 t1 = texelFetch(bvhData, ivec2(1, i), 0);
+    vec4 t2 = texelFetch(bvhData, ivec2(2, i), 0);
+
+    BVHNode node;
+    node.minB = t0.xyz;
+    node.maxB = t1.xyz;
+
+    node.leftType = int(t2.x);
+    node.leftIndex = int(t2.y);
+
+    node.rightType = int(t2.z);
+    node.rightIndex = int(t2.w);
+
+    return node;
+}
+
+float NodeCenterDistance(BVHNode n, Ray ray) {
+    vec3 center = (n.minB + n.maxB) / 2.0;
+    return dot(center - ray.origin, ray.direction);
+}
+
+bool HitBVH(Ray ray, out HitRecord rec) {
+    bool hitAnything = false;
+    float closest = POS_INFINITY;
+
+    int stack[MAX_BVH_STACK];
+    int sp = 0;
+
+    stack[sp++] = 0;
+
+    while (sp > 0) {
+        int nodeIndex = stack[--sp];
+        BVHNode node = GetBVHNode(nodeIndex);
+
+        if (!HitAABB(node.minB, node.maxB, ray, 0.001, closest)) continue;
+
+        if (node.leftType == BVH && node.rightType == BVH) {
+            BVHNode left = GetBVHNode(node.leftIndex);
+            BVHNode right = GetBVHNode(node.rightIndex);
+
+            bool leftFirst = NodeCenterDistance(left, ray) < NodeCenterDistance(right, ray);
+
+            stack[sp++] = leftFirst ? node.rightIndex : node.leftIndex;
+            stack[sp++] = leftFirst ? node.leftIndex : node.rightIndex;
+        }
+
+        if (node.leftType == SPHERE) {
+            HitRecord temp;
+
+            if (HitHittable(GetHittable(node.leftIndex), ray, Interval(0.001, closest), temp)) {
+                hitAnything = true;
+                closest = temp.t;
+                rec = temp;
+            }
+        }
+
+        if (node.rightType == SPHERE) {
+            HitRecord temp;
+
+            if (HitHittable(GetHittable(node.rightIndex), ray, Interval(0.001, closest), temp)) {
+                hitAnything = true;
+                closest = temp.t;
+                rec = temp;
+            }
+        }
+    }
+
+    return hitAnything;
+}
+
 vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
     vec3 attenuationAccum = vec3(1.0);
     Ray currentRay = ray;
@@ -373,7 +487,7 @@ vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
     for (int i = 0; i < MAX_DEPTH; i++) {
         HitRecord rec;
 
-        if (HitWorld(currentRay, Interval(0.0001, POS_INFINITY), rec, objects)) {
+        if (HitBVH(currentRay, rec)) {
             Ray scattered;
             vec3 attenuation;
             bool didScatter = false;
@@ -493,20 +607,6 @@ vec3 LinearToGamma(vec3 colour) {
     }
 
     return result;
-}
-
-Hittable GetHittable(int i) {
-    Hittable object;
-
-    object.type = int(texelFetch(data, ivec2(0, i), 0).x);
-    object.isActive = true;
-
-    object.data0 = texelFetch(data, ivec2(1, i), 0);
-    object.data1 = texelFetch(data, ivec2(2, i), 0);
-    object.data2 = texelFetch(data, ivec2(3, i), 0);
-    object.data3 = texelFetch(data, ivec2(4, i), 0);
-
-    return object;
 }
 
 float CalculateFocusDistance(Camera camera, Hittable objects[MAX_OBJECTS]) {

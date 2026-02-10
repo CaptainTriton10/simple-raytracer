@@ -1,14 +1,17 @@
 #include "../include/helpers.h"
+#include "../include/bvh.h"
 #include "raylib.h"
 #include "../include/tomlc17.h"
 #include <math.h>
+#include <time.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_OBJECTS 4
+#define MAX_OBJECTS 13
 #define DATA_WIDTH 5
+#define BVH_DATA_WIDTH 3
 
 // On Windows, target dedicated GPU with NVIDIA Optimus and AMD PowerXpress/Switchable Graphics
 #ifdef _WIN32
@@ -99,6 +102,45 @@ Texture2D CreateSphereData(Sphere spheres[], size_t len) {
     return dataTexture;
 }
 
+Texture2D CreateBVHData(BVHNode nodes[], size_t nodeCount) {
+    size_t dataSize = nodeCount * BVH_DATA_WIDTH * 4;
+    float *data = malloc(dataSize * sizeof(float));
+
+    for (int i = 0; i < nodeCount; i++) {
+        int base = i * BVH_DATA_WIDTH * 4;
+
+        data[base + 0] = nodes[i].bbox.x.min;
+        data[base + 1] = nodes[i].bbox.y.min;
+        data[base + 2] = nodes[i].bbox.z.min;
+        data[base + 3] = 0.0f;
+
+        data[base + 4] = nodes[i].bbox.x.max;
+        data[base + 5] = nodes[i].bbox.y.max;
+        data[base + 6] = nodes[i].bbox.z.max;
+        data[base + 7] = 0.0f;
+
+        data[base + 8] = nodes[i].left.type;
+        data[base + 9] = nodes[i].left.index;
+        data[base + 10] = nodes[i].right.type;
+        data[base + 11] = nodes[i].right.index;
+    }
+
+    Image dataImage = {
+        .data = data,
+        .width = BVH_DATA_WIDTH,
+        .height = nodeCount,
+        .mipmaps = 1,
+        .format = PIXELFORMAT_UNCOMPRESSED_R32G32B32A32
+    };
+
+    Texture2D dataTexture = LoadTextureFromImage(dataImage);
+
+    SetTextureFilter(dataTexture, TEXTURE_FILTER_POINT);
+    SetTextureWrap(dataTexture, TEXTURE_WRAP_CLAMP);
+
+    return dataTexture;
+}
+
 Scene ParseSceneConfig(const char *filename) {
     toml_result_t result = toml_parse_file_ex(filename);
 
@@ -139,6 +181,22 @@ Scene ParseSceneConfig(const char *filename) {
     return scene;
 }
 
+void CreateBVH(Scene *scene) {
+    printf("Creating BVH...\n");
+    double startTime = GetTime();
+
+    ComputeWorldBBoxes(scene);
+
+    scene->nodes = malloc(sizeof(BVHNode) * (2 * scene->objCount));
+    scene->nodeCount = 0;
+
+    int root = InitBVHNode(scene, 0, scene->objCount);
+
+    printf("BVH created: %d nodes\n", scene->nodeCount);
+    double totalTime = (GetTime() - startTime) * 1000;
+    printf("BVH creation time: %fms\n", totalTime);
+}
+
 int main(int argc, char *argv[]) {
     Scene scene;
 
@@ -151,6 +209,8 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    CreateBVH(&scene);
+
     RenderSettings settings = {
         .aaEnabled = 0,
         .width = 1920
@@ -161,7 +221,7 @@ int main(int argc, char *argv[]) {
     const int screenWidth = settings.width;
     const int screenHeight = (int)(screenWidth / aspectRatio);
 
-    SetConfigFlags(FLAG_FULLSCREEN_MODE);
+    // SetConfigFlags(FLAG_FULLSCREEN_MODE);
 
     InitWindow(screenWidth, screenHeight, "Simple Raytracer");
 
@@ -173,6 +233,7 @@ int main(int argc, char *argv[]) {
     SetTargetFPS(100);
 
     Texture2D data = CreateSphereData(scene.objects, scene.objCount);
+    Texture2D bvhData = CreateBVHData(scene.nodes, scene.nodeCount);
 
     Shader raytracing = LoadShader(0, "src/shaders/raytracing.frag");
     Shader denoiser = LoadShader(0, "src/shaders/denoise.frag");
@@ -196,8 +257,9 @@ int main(int argc, char *argv[]) {
 
     int frame = 0;
     while (!WindowShouldClose()) {    // Detect window close button or ESC key
+        double startTime1 = GetTime();
         float res[2] = { (float)GetScreenWidth(), (float)GetScreenHeight() };
-        float time = GetTime();
+        float time_s = GetTime();
 
         BasisVectors vectors = Look(&yaw, &pitch);
 
@@ -211,7 +273,7 @@ int main(int argc, char *argv[]) {
         float pos[3] = {camera.position.x, camera.position.y, camera.position.z};
 
         RaytracerShaderValues raytracerValues = {
-            .time = time,
+            .time = time_s,
             .resolution = res,
             .dataSize = scene.objCount,
             .fov = camera.fovy,
@@ -232,14 +294,15 @@ int main(int argc, char *argv[]) {
 
         SetRaytracerValues(raytracing, raytracerLocs, raytracerValues);
 
-
         int dataLoc = GetShaderLocation(raytracing, "data");
+        int bvhDataLoc = GetShaderLocation(raytracing, "bvhData");
         int uvTexLoc = GetShaderLocation(raytracing, "uvTex");
 
         BeginTextureMode(prevFrame);
             ClearBackground(BLACK);
             BeginShaderMode(raytracing);
                 SetShaderValueTexture(raytracing, dataLoc, data);   // The data must be loaded here
+                SetShaderValueTexture(raytracing, bvhDataLoc, bvhData);
                 SetShaderValueTexture(raytracing, uvTexLoc, uvTex);
                 DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), WHITE);
             EndShaderMode();
@@ -294,6 +357,8 @@ int main(int argc, char *argv[]) {
         }
 
         frame++;
+        double totalTime = GetTime() - startTime1;
+        printf("Total frame time: %fms [%.1ffps]\n\n", totalTime * 1000, 1.0f / totalTime);
     }
 
     CloseWindow();
