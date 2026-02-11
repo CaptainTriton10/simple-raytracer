@@ -10,7 +10,6 @@
 #include <string.h>
 
 #define MAX_OBJECTS 13
-#define DATA_WIDTH 5
 #define BVH_DATA_WIDTH 3
 
 // On Windows, target dedicated GPU with NVIDIA Optimus and AMD PowerXpress/Switchable Graphics
@@ -48,42 +47,76 @@
  *          rgb = emission
  */
 
-Texture2D CreateSphereData(Sphere spheres[], size_t len) {
+Hittable TranslateSphereData(Sphere s) {
+    Hittable h;
+    h.type = SPHERE;
+
+    h.data[0].x = SPHERE;
+
+    h.data[1].x = s.pos[0];
+    h.data[1].y = s.pos[1];
+    h.data[1].z = s.pos[2];
+    h.data[1].w = s.radius;
+
+    h.data[2].x = s.material.type;
+    h.data[2].y = s.material.albedo[0];
+    h.data[2].z = s.material.albedo[1];
+    h.data[2].w = s.material.albedo[2];
+
+    h.data[3].x = s.material.roughness;
+    h.data[3].y = s.material.ior;
+
+    h.data[4].x = s.material.emission[0];
+    h.data[4].y = s.material.emission[1];
+    h.data[4].z = s.material.emission[2];
+
+    return h;
+}
+
+Hittable TranslateQuadData(Quad q) {
+    Hittable h;
+    h.type = QUAD;
+
+    h.data[0].x = QUAD;
+    h.data[0].y = q.Q[0];
+    h.data[0].z = q.Q[1];
+    h.data[0].w = q.Q[2];
+
+    h.data[1].x = q.u[0];
+    h.data[1].y = q.u[1];
+    h.data[1].z = q.u[2];
+    h.data[1].w = q.material.ior;
+
+    h.data[2].x = q.v[0];
+    h.data[2].y = q.v[1];
+    h.data[2].z = q.v[2];
+    h.data[2].w = q.material.roughness;
+
+    h.data[3].x = q.material.type;
+    h.data[3].y = q.material.albedo[0];
+    h.data[3].z = q.material.albedo[1];
+    h.data[3].w = q.material.albedo[2];
+
+    h.data[4].x = q.material.emission[0];
+    h.data[4].y = q.material.emission[1];
+    h.data[4].z = q.material.emission[2];
+
+    return h;
+}
+
+Texture2D CreateSceneData(Hittable objects[], size_t len) {
     size_t dataSize = len * DATA_WIDTH * 4;
     float *data = malloc(dataSize * sizeof(float));
 
     for (int i = 0; i < len; i++) {
         int base = i * DATA_WIDTH * 4;
 
-        // (0, 0)
-        data[base + 0] = SPHERE;
-        data[base + 1] = 0.0f; // Empty (unused)
-        data[base + 2] = 0.0f;
-        data[base + 3] = 0.0f;
-
-        // (1, 0)
-        data[base + 4] = spheres[i].pos[0];
-        data[base + 5] = spheres[i].pos[1];
-        data[base + 6] = spheres[i].pos[2];
-        data[base + 7] = spheres[i].radius;
-
-        // (2, 0)
-        data[base + 8] = spheres[i].material.type;
-        data[base + 9] = spheres[i].material.albedo[0];
-        data[base + 10] = spheres[i].material.albedo[1];
-        data[base + 11] = spheres[i].material.albedo[2];
-
-        // (3, 0)
-        data[base + 12] = spheres[i].material.roughness;
-        data[base + 13] = spheres[i].material.ior;
-        data[base + 14] = 0.0f;
-        data[base + 15] = 0.0f;
-
-        // (4, 0)
-        data[base + 16] = spheres[i].material.emission[0];
-        data[base + 17] = spheres[i].material.emission[1];
-        data[base + 18] = spheres[i].material.emission[2];
-        data[base + 19] = 0.0f;
+        for (int j = 0; j < DATA_WIDTH; j++) {
+            data[base + j * 4 + 0] = objects[i].data[j].x;
+            data[base + j * 4 + 1] = objects[i].data[j].y;
+            data[base + j * 4 + 2] = objects[i].data[j].z;
+            data[base + j * 4 + 3] = objects[i].data[j].w;
+        }
     }
 
     Image dataImage = {
@@ -284,7 +317,13 @@ int main(int argc, char *argv[]) {
 
     SetTargetFPS(100);
 
-    Texture2D data = CreateSphereData(scene.objects, scene.objCount);
+    Hittable objects[scene.objCount];
+
+    for (int i = 0; i < scene.objCount; i++) {
+        objects[i] = TranslateSphereData(scene.objects[i]);
+    }
+
+    Texture2D data = CreateSceneData(objects, scene.objCount);
     Texture2D bvhData = CreateBVHData(scene.nodes, scene.nodeCount);
 
     Shader raytracing = LoadShader(0, "src/shaders/raytracing.frag");

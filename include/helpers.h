@@ -5,7 +5,11 @@
 #include "../include/tomlc17.h"
 #include <stddef.h>
 
-#define SPHERE 0
+#define DATA_WIDTH 5
+
+#define BVH_NODE 0
+#define SPHERE 1
+#define QUAD 2
 
 #define LAMBERTIAN 0
 #define METAL 1
@@ -17,13 +21,8 @@ typedef struct Interval {
     float max;
 } Interval;
 
-typedef enum {
-    HITTABLE_SPHERE,
-    HITTABLE_BVH_NODE
-} HittableType;
-
 typedef struct {
-    HittableType type;
+    int type;
     int index;
 } HittableRef;
 
@@ -51,6 +50,18 @@ typedef struct Sphere {
     ShaderMaterial material;
     AABB bbox;
 } Sphere;
+
+typedef struct Quad {
+    float Q[3];
+    float u[3], v[3];
+    ShaderMaterial material;
+    AABB bbox;
+} Quad;
+
+typedef struct Hittable {
+    int type;
+    Vector4 data[DATA_WIDTH];
+} Hittable;
 
 typedef struct Scene {
     Sphere *objects;
