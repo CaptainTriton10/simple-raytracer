@@ -21,6 +21,18 @@ Interval IntervalExpand(Interval i, float delta) {
     return (Interval) {i.min - padding, i.max + padding};
 }
 
+void PadToMinimums(AABB *aabb) {
+    float delta = 0.0001;
+
+    float xSize = aabb->x.max - aabb->x.min;
+    float ySize = aabb->y.max - aabb->y.min;
+    float zSize = aabb->z.max - aabb->z.min;
+
+    if (xSize < delta) aabb->x = IntervalExpand(aabb->x, delta);
+    if (ySize < delta) aabb->y = IntervalExpand(aabb->y, delta);
+    if (zSize < delta) aabb->z = IntervalExpand(aabb->z, delta);
+}
+
 void InitInterval(Interval *i, Interval a, Interval b) {
     i->min = a.min <= b.min ? a.min : b.min;
     i->max = a.max >= b.max ? a.max : b.max;
@@ -30,6 +42,8 @@ void InitAABB(AABB *aabb, Vector3 a, Vector3 b) {
     aabb->x = (a.x <= b.x) ? (Interval) {a.x, b.x} : (Interval) {b.x, a.x};
     aabb->y = (a.y <= b.y) ? (Interval) {a.y, b.y} : (Interval) {b.y, a.y};
     aabb->z = (a.z <= b.z) ? (Interval) {a.z, b.z} : (Interval) {b.z, a.z};
+
+    PadToMinimums(aabb);
 }
 
 void InitAABB2(AABB *aabb, AABB box0, AABB box1) {
@@ -45,6 +59,21 @@ void CalculateSphereBBox(Sphere *s) {
     InitAABB(&s->bbox, Vector3Subtract(staticCenter, rvec),  Vector3Add(staticCenter, rvec));
 }
 
+void CalculateQuadBBox(Quad *quad) {
+    Vector3 q = {quad->Q[0], quad->Q[1], quad->Q[2]};
+
+    Vector3 u = {quad->u[0], quad->u[1], quad->u[2]};
+    Vector3 v = {quad->v[0], quad->v[1], quad->v[2]};
+
+    AABB diagonal1;
+    InitAABB(&diagonal1, q, Vector3Add(q, Vector3Add(u, v)));
+
+    AABB diagonal2;
+    InitAABB(&diagonal2, Vector3Add(q, u), Vector3Add(q, v));
+
+    InitAABB2(&quad->bbox, diagonal1, diagonal2);
+}
+
 AABB ComputeSpanBBox(Scene *scene, int start, int end) {
     AABB box = scene->objects[start].bbox;
 
@@ -57,9 +86,19 @@ AABB ComputeSpanBBox(Scene *scene, int start, int end) {
 
 void ComputeWorldBBoxes(Scene *scene) {
     for (int i = 0; i < scene->objCount; i++) {
-        CalculateSphereBBox(&scene->objects[i]);
+        if (scene->objects[i].type == SPHERE) {
+            Sphere s = HittableToSphere(scene->objects[i]);
 
-        InitAABB2(&scene->bbox, scene->bbox, scene->objects[i].bbox);
+            CalculateSphereBBox(&s);
+            scene->objects[i].bbox = s.bbox;
+        } else if (scene->objects[i].type == QUAD) {
+            Quad q = HittableToQuad(scene->objects[i]);
+
+            CalculateQuadBBox(&q);
+            scene->objects[i].bbox = q.bbox;
+        }
+
+        // InitAABB2(&scene->bbox, scene->bbox, scene->objects[i].bbox);
     }
 }
 
@@ -80,8 +119,8 @@ int LongestAxis(AABB aabb) {
 
 int BoxCompare(void *context, const void *a, const void *b) {
     int axis = *(int*) context;
-    Sphere *sa = (Sphere*) a;
-    Sphere *sb = (Sphere*) b;
+    Hittable *sa = (Hittable*) a;
+    Hittable *sb = (Hittable*) b;
 
     Interval ia = AxisInterval(sa->bbox, axis);
     Interval ib = AxisInterval(sb->bbox, axis);
@@ -103,13 +142,13 @@ int InitBVHNode(Scene *scene, size_t start, size_t end) {
     node->bbox = spanBox;
 
     if (objectSpan == 1) {
-        node->left = (HittableRef) {SPHERE, start};
-        node->right = (HittableRef) {SPHERE, start};
+        node->left = (HittableRef) {scene->objects[start].type, start};
+        node->right = (HittableRef) {scene->objects[start].type, start};
     } else if (objectSpan == 2) {
-        node->left = (HittableRef) {HITTABLE_SPHERE, start};
-        node->right = (HittableRef) {HITTABLE_SPHERE, start + 1};
+        node->left = (HittableRef) {scene->objects[start].type, start};
+        node->right = (HittableRef) {scene->objects[start].type, start + 1};
     } else {
-        qsort_s(&scene->objects[start], objectSpan, sizeof(Sphere), BoxCompare, &axis);
+        qsort_s(&scene->objects[start], objectSpan, sizeof(Hittable), BoxCompare, &axis);
 
         int mid = start + objectSpan / 2.0f;
 

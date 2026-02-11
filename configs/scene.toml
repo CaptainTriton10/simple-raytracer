@@ -2,21 +2,25 @@
 objects = ["ground", "glass_ball", "metal_ball", "diffuse_ball"]
 
 [ground]
+type = "sphere"
 position = [0.0, -100.5, 0.0]
 radius = 100.0
 material = "mat_ground"
 
 [glass_ball]
+type = "sphere"
 position = [0.0, 0.0, 0.0]
 radius = 0.5
 material = "mat_glass"
 
 [metal_ball]
+type = "sphere"
 position = [-1.2, 0.0, 0.0]
 radius = 0.5
 material = "mat_metal"
 
 [diffuse_ball]
+type = "sphere"
 position = [1.2, 0.0, 0.0]
 radius = 0.5
 material = "mat_diffuse"

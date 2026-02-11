@@ -15,6 +15,120 @@ void error(const char *msg) {
     exit(1);
 }
 
+Hittable TranslateSphereData(Sphere s) {
+    Hittable h;
+    h.type = SPHERE;
+
+    h.data[0].x = SPHERE;
+
+    h.data[1].x = s.pos[0];
+    h.data[1].y = s.pos[1];
+    h.data[1].z = s.pos[2];
+    h.data[1].w = s.radius;
+
+    h.data[2].x = s.material.type;
+    h.data[2].y = s.material.albedo[0];
+    h.data[2].z = s.material.albedo[1];
+    h.data[2].w = s.material.albedo[2];
+
+    h.data[3].x = s.material.roughness;
+    h.data[3].y = s.material.ior;
+
+    h.data[4].x = s.material.emission[0];
+    h.data[4].y = s.material.emission[1];
+    h.data[4].z = s.material.emission[2];
+
+    return h;
+}
+
+Sphere HittableToSphere(Hittable h) {
+    float albedo[3] = {h.data[2].y, h.data[2].z, h.data[2].w};
+    float emission[3] = {h.data[4].x, h.data[4].y, h.data[4].z};
+
+    ShaderMaterial mat = {
+        .type = h.data[2].x,
+        .roughness = h.data[3].z,
+        .ior = h.data[3].y
+    };
+
+    memcpy(mat.albedo, albedo, sizeof(albedo));
+    memcpy(mat.emission, emission, sizeof(emission));
+
+    float position[3] = {
+        h.data[1].x,
+        h.data[1].y,
+        h.data[1].z,
+    };
+
+    Sphere s = {
+        .radius = h.data[1].w,
+        .material = mat
+    };
+
+    memcpy(s.pos, position, sizeof(position));
+
+    return s;
+}
+
+Hittable TranslateQuadData(Quad q) {
+    Hittable h;
+    h.type = QUAD;
+
+    h.data[0].x = QUAD;
+    h.data[0].y = q.Q[0];
+    h.data[0].z = q.Q[1];
+    h.data[0].w = q.Q[2];
+
+    h.data[1].x = q.u[0];
+    h.data[1].y = q.u[1];
+    h.data[1].z = q.u[2];
+    h.data[1].w = q.material.ior;
+
+    h.data[2].x = q.v[0];
+    h.data[2].y = q.v[1];
+    h.data[2].z = q.v[2];
+    h.data[2].w = q.material.roughness;
+
+    h.data[3].x = q.material.type;
+    h.data[3].y = q.material.albedo[0];
+    h.data[3].z = q.material.albedo[1];
+    h.data[3].w = q.material.albedo[2];
+
+    h.data[4].x = q.material.emission[0];
+    h.data[4].y = q.material.emission[1];
+    h.data[4].z = q.material.emission[2];
+
+    return h;
+}
+
+Quad HittableToQuad(Hittable h) {
+    float albedo[3] = {h.data[3].y, h.data[3].z, h.data[3].w};
+    float emission[3] = {h.data[4].x, h.data[4].y, h.data[4].z};
+
+    ShaderMaterial mat = {
+        .type = h.data[3].x,
+        .ior = h.data[1].w,
+        .roughness = h.data[2].w
+    };
+
+    memcpy(mat.albedo, albedo, sizeof(albedo));
+    memcpy(mat.emission, emission, sizeof(emission));
+
+    float q[3] = {h.data[0].y, h.data[0].z, h.data[0].w};
+    float u[3] = {h.data[1].x, h.data[1].y, h.data[1].z};
+    float v[3] = {h.data[2].x, h.data[2].y, h.data[2].z};
+
+    Quad quad = {
+        .material = mat
+    };
+
+    memcpy(quad.Q, q, sizeof(q));
+    memcpy(quad.u, u, sizeof(u));
+    memcpy(quad.v, v, sizeof(v));
+
+    return quad;
+}
+
 toml_datum_t GetConfigParam(toml_result_t table, char *section, char *item, toml_type_t type) {
     char path[64];
     sprintf(path, "%s.%s", section, item);
@@ -82,15 +196,8 @@ void GetConfigVec2(toml_result_t table, float *vec, char *section, char *item) {
     memcpy(vec, result, sizeof(result));    // Move result to input float array
 }
 
-Sphere GetObjectParams(toml_result_t table, char *name) {
-    float position[3];
-    GetConfigVec3(table, position, name, "position");
-
-    toml_datum_t radiusT = GetConfigParam(table, name, "radius", TOML_FP64);
-    toml_datum_t materialT = GetConfigParam(table, name, "material", TOML_STRING);
-    char *matName = _strdup(materialT.u.s);
-
-    toml_datum_t typeT = GetConfigParam(table, matName, "type", TOML_STRING);
+ShaderMaterial GetConfigMaterial(toml_result_t table, char *name) {
+    toml_datum_t typeT = GetConfigParam(table, name, "type", TOML_STRING);
     char *typeS = _strdup(typeT.u.s);
     int type = 0;
 
@@ -103,31 +210,31 @@ Sphere GetObjectParams(toml_result_t table, char *name) {
     if (strcmp(TextToUpper(typeS), "DIFFUSE") == 0) {
         type = LAMBERTIAN;
 
-        GetConfigVec3(table, albedo, matName, "albedo");
+        GetConfigVec3(table, albedo, name, "albedo");
 
     } else if (strcmp(TextToUpper(typeS), "METAL") == 0) {
         type = METAL;
 
-        GetConfigVec3(table, albedo, matName, "albedo");
-        toml_datum_t roughnessT = GetConfigParam(table, matName, "roughness", TOML_FP64);
+        GetConfigVec3(table, albedo, name, "albedo");
+        toml_datum_t roughnessT = GetConfigParam(table, name, "roughness", TOML_FP64);
 
         roughness = roughnessT.u.fp64;
 
     } else if (strcmp(TextToUpper(typeS), "GLASS") == 0) {
         type = DIELECTRIC;
 
-        toml_datum_t iorT = GetConfigParam(table, matName, "ior", TOML_FP64);
+        toml_datum_t iorT = GetConfigParam(table, name, "ior", TOML_FP64);
 
         ior = iorT.u.fp64;
 
     } else if (strcmp(TextToUpper(typeS), "EMISSIVE") == 0) {
         type = EMISSIVE;
 
-        GetConfigVec3(table, emission, matName, "emission");
+        GetConfigVec3(table, emission, name, "emission");
 
     } else {
         char errMsg[128];
-        sprintf(errMsg, "Unknown %s.type property [%s]", matName, typeS);
+        sprintf(errMsg, "Unknown %s.type property [%s]", name, typeS);
 
         error(errMsg);
     }
@@ -141,17 +248,63 @@ Sphere GetObjectParams(toml_result_t table, char *name) {
     memcpy(material.albedo, albedo, sizeof(albedo));
     memcpy(material.emission, emission, sizeof(emission));
 
-    Sphere obj = {
-        .radius = radiusT.u.fp64,
-        .material = material
-    };
-
-    memcpy(obj.pos, position, sizeof(position));
-
-    free(matName);
     free(typeS);
 
-    return obj;
+    return material;
+}
+
+Hittable GetConfigObject(toml_result_t table, char *name) {
+    toml_datum_t objType = GetConfigParam(table, name, "type", TOML_STRING);
+
+    Hittable object;
+
+    if (strcmp(objType.u.s, "sphere") == 0) {
+        object.type = SPHERE;
+
+        float position[3];
+        GetConfigVec3(table, position, name, "position");
+
+        toml_datum_t radiusT = GetConfigParam(table, name, "radius", TOML_FP64);
+
+        toml_datum_t materialT = GetConfigParam(table, name, "material", TOML_STRING);
+        ShaderMaterial mat = GetConfigMaterial(table, (char*)materialT.u.s);
+
+        Sphere sphere = {
+            .radius = radiusT.u.fp64,
+            .material = mat
+        };
+
+        memcpy(sphere.pos, position, sizeof(position));
+
+        object = TranslateSphereData(sphere);
+
+    } else if (strcmp(objType.u.s, "quad") == 0) {
+        object.type = QUAD;
+
+        float q[3];
+        GetConfigVec3(table, q, name, "Q");
+
+        float u[3];
+        GetConfigVec3(table, u, name, "u");
+
+        float v[3];
+        GetConfigVec3(table, v, name, "v");
+
+        toml_datum_t materialT = GetConfigParam(table, name, "material", TOML_STRING);
+        ShaderMaterial mat = GetConfigMaterial(table, (char*)materialT.u.s);
+
+        Quad quad = {
+            .material = mat
+        };
+
+        memcpy(quad.Q, q, sizeof(q));
+        memcpy(quad.u, u, sizeof(u));
+        memcpy(quad.v, v, sizeof(v));
+
+        object = TranslateQuadData(quad);
+    }
+
+    return object;
 }
 
 void SceneFree(Scene *scene) {

@@ -47,63 +47,6 @@
  *          rgb = emission
  */
 
-Hittable TranslateSphereData(Sphere s) {
-    Hittable h;
-    h.type = SPHERE;
-
-    h.data[0].x = SPHERE;
-
-    h.data[1].x = s.pos[0];
-    h.data[1].y = s.pos[1];
-    h.data[1].z = s.pos[2];
-    h.data[1].w = s.radius;
-
-    h.data[2].x = s.material.type;
-    h.data[2].y = s.material.albedo[0];
-    h.data[2].z = s.material.albedo[1];
-    h.data[2].w = s.material.albedo[2];
-
-    h.data[3].x = s.material.roughness;
-    h.data[3].y = s.material.ior;
-
-    h.data[4].x = s.material.emission[0];
-    h.data[4].y = s.material.emission[1];
-    h.data[4].z = s.material.emission[2];
-
-    return h;
-}
-
-Hittable TranslateQuadData(Quad q) {
-    Hittable h;
-    h.type = QUAD;
-
-    h.data[0].x = QUAD;
-    h.data[0].y = q.Q[0];
-    h.data[0].z = q.Q[1];
-    h.data[0].w = q.Q[2];
-
-    h.data[1].x = q.u[0];
-    h.data[1].y = q.u[1];
-    h.data[1].z = q.u[2];
-    h.data[1].w = q.material.ior;
-
-    h.data[2].x = q.v[0];
-    h.data[2].y = q.v[1];
-    h.data[2].z = q.v[2];
-    h.data[2].w = q.material.roughness;
-
-    h.data[3].x = q.material.type;
-    h.data[3].y = q.material.albedo[0];
-    h.data[3].z = q.material.albedo[1];
-    h.data[3].w = q.material.albedo[2];
-
-    h.data[4].x = q.material.emission[0];
-    h.data[4].y = q.material.emission[1];
-    h.data[4].z = q.material.emission[2];
-
-    return h;
-}
-
 Texture2D CreateSceneData(Hittable objects[], size_t len) {
     size_t dataSize = len * DATA_WIDTH * 4;
     float *data = malloc(dataSize * sizeof(float));
@@ -241,14 +184,15 @@ Scene ParseSceneConfig(const char *filename) {
     const size_t objCount = objectsT.u.arr.size;
     char *objNames[objCount];
 
-    Sphere *objects = malloc(objCount * sizeof(Sphere));
+    Hittable *objects = malloc(objCount * sizeof(Hittable));
 
     // Get the names of all the objects
     for (int i = 0; i < objCount; i++) {
         if (objectsT.u.arr.elem[i].type == TOML_STRING){
             objNames[i] = _strdup(objectsT.u.arr.elem[i].u.s);
 
-            objects[i] = GetObjectParams(result, objNames[i]);
+            toml_datum_t objType = GetConfigParam(result, objNames[i], "type", TOML_STRING);
+            objects[i] = GetConfigObject(result, objNames[i]);
         } else {
             error("Object name is not a string.");
         }
@@ -317,13 +261,7 @@ int main(int argc, char *argv[]) {
 
     SetTargetFPS(100);
 
-    Hittable objects[scene.objCount];
-
-    for (int i = 0; i < scene.objCount; i++) {
-        objects[i] = TranslateSphereData(scene.objects[i]);
-    }
-
-    Texture2D data = CreateSceneData(objects, scene.objCount);
+    Texture2D data = CreateSceneData(scene.objects, scene.objCount);
     Texture2D bvhData = CreateBVHData(scene.nodes, scene.nodeCount);
 
     Shader raytracing = LoadShader(0, "src/shaders/raytracing.frag");

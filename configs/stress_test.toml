@@ -12,66 +12,79 @@ objects = [
 # -----------------
 
 [ground]
+type = "sphere"
 position = [0.0, -100.5, 0.0]
 radius = 100.0
 material = "mat_ground"
 
 [s1]
+type = "sphere"
 position = [-1.5, 0.0, -1.5]
 radius = 0.3
 material = "mat_diffuse_1"
 
 [s2]
+type = "sphere"
 position = [-0.5, 0.0, -1.5]
 radius = 0.3
 material = "mat_metal_1"
 
 [s3]
+type = "sphere"
 position = [0.5, 0.0, -1.5]
 radius = 0.3
 material = "mat_glass"
 
 [s4]
+type = "sphere"
 position = [1.5, 0.0, -1.5]
 radius = 0.3
 material = "mat_diffuse_2"
 
 [s5]
+type = "sphere"
 position = [-1.5, 0.0, -0.5]
 radius = 0.3
 material = "mat_metal_2"
 
 [s6]
+type = "sphere"
 position = [-0.5, 0.0, -0.5]
 radius = 0.3
 material = "mat_diffuse_3"
 
 [s7]
+type = "sphere"
 position = [0.5, 0.0, -0.5]
 radius = 0.3
 material = "mat_metal_1"
 
 [s8]
+type = "sphere"
 position = [1.5, 0.0, -0.5]
 radius = 0.3
 material = "mat_diffuse_1"
 
 [s9]
+type = "sphere"
 position = [-1.5, 0.0, 0.5]
 radius = 0.3
 material = "mat_glass"
 
 [s10]
+type = "sphere"
 position = [-0.5, 0.0, 0.5]
 radius = 0.3
 material = "mat_diffuse_2"
 
 [s11]
+type = "sphere"
 position = [0.5, 0.0, 0.5]
 radius = 0.3
 material = "mat_metal_2"
 
 [s12]
+type = "sphere"
 position = [1.5, 0.0, 0.5]
 radius = 0.3
 material = "mat_diffuse_3"

@@ -61,10 +61,11 @@ typedef struct Quad {
 typedef struct Hittable {
     int type;
     Vector4 data[DATA_WIDTH];
+    AABB bbox;
 } Hittable;
 
 typedef struct Scene {
-    Sphere *objects;
+    Hittable *objects;
     size_t objCount;
     AABB bbox;
     int nodeCount;
@@ -128,10 +129,18 @@ typedef struct BasisVectors {
 void error(const char *msg);
 void SceneFree(Scene *scene);
 
+Hittable TranslateSphereData(Sphere s);
+Sphere HittableToSphere(Hittable h);
+
+Hittable TranslateQuadData(Quad q);
+Quad HittableToQuad(Hittable h);
+
 toml_datum_t GetConfigParam(toml_result_t table, char *section, char *item, toml_type_t type);
 void GetConfigVec3(toml_result_t table, float *vec, char *section, char *item);
 void GetConfigVec2(toml_result_t table, float *vec, char *section, char *item);
-Sphere GetObjectParams(toml_result_t table, char *name);
+
+ShaderMaterial GetConfigMaterial(toml_result_t table, char *name);
+Hittable GetConfigObject(toml_result_t table, char *name);
 
 RaytracerShaderLocations GetRaytracerLocations(Shader shader);
 void SetRaytracerValues(Shader shader, RaytracerShaderLocations locs, RaytracerShaderValues values);
