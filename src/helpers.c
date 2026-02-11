@@ -56,6 +56,32 @@ void GetConfigVec3(toml_result_t table, float *vec, char *section, char *item) {
     memcpy(vec, result, sizeof(result));    // Move result to input float array
 }
 
+void GetConfigVec2(toml_result_t table, float *vec, char *section, char *item) {
+    char path[64];
+    sprintf(path, "%s.%s", section, item);
+
+    toml_datum_t param = toml_seek(table.toptab, path);
+    if (param.type != TOML_ARRAY) {
+        char errMsg[128];
+        sprintf(errMsg, "Missing or invalid %s property", path);
+
+        error(errMsg);
+    } else if(param.u.arr.size != 2) {
+        char errMsg[128];
+        sprintf(errMsg, "Wrong number of arguments (%d) for vec2 [%s]", param.u.arr.size, path);
+
+        error(errMsg);
+    }
+
+    float result[3];
+
+    for (int i = 0; i < 2; i++) {
+        result[i] = (float) param.u.arr.elem[i].u.fp64;
+    }
+
+    memcpy(vec, result, sizeof(result));    // Move result to input float array
+}
+
 Sphere GetObjectParams(toml_result_t table, char *name) {
     float position[3];
     GetConfigVec3(table, position, name, "position");
@@ -261,11 +287,11 @@ bool Movement(Camera *camera, BasisVectors vectors) {
     return changed;
 }
 
-bool Zoom(Camera *camera) {
+bool Zoom(Camera *camera, RenderSettings settings) {
     float zoomFactor = CAMERA_ZOOM_SPEED * GetFrameTime();
     float scroll = 1 + zoomFactor * GetMouseWheelMove();
 
-    camera->fovy = Clampf(camera->fovy / scroll, 30, 120);
+    camera->fovy = Clampf(camera->fovy / scroll, settings.fovLimits[0], settings.fovLimits[1]);
 
     // If the camera was zoomed this frame
     if (scroll != 1.0) {

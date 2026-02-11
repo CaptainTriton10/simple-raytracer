@@ -141,6 +141,60 @@ Texture2D CreateBVHData(BVHNode nodes[], size_t nodeCount) {
     return dataTexture;
 }
 
+RenderSettings ParseRendererConfig(const char *filename) {
+    const char headerName[] = "settings";
+    toml_result_t result = toml_parse_file_ex(filename);
+
+    if (!result.ok) {
+        char errMsg[128];
+        sprintf(errMsg, "%s config parse error.", filename);
+
+        error(errMsg);
+    }
+
+    toml_datum_t widthT = GetConfigParam(result, (char*)headerName, "width", TOML_INT64);
+    if (widthT.u.int64 <= 0) {
+        error("Width cannot be negative or 0.");
+    }
+
+    toml_datum_t heightT = GetConfigParam(result, (char*)headerName, "height", TOML_INT64);
+    if (heightT.u.int64 <= 0) {
+        error("Height cannot be negative or 0.");
+    }
+
+    toml_datum_t fullscreenT = GetConfigParam(result, (char*)headerName, "fullscreen", TOML_BOOLEAN);
+
+    float fovLimits[2];
+    GetConfigVec2(result, fovLimits, (char*)headerName, "fov_limits");
+    if (fovLimits[0] > fovLimits[1]) {
+        char errMsg[256];
+        sprintf(errMsg, "The first argument of fov_limits cannot be greater than the second [%f > %f].", fovLimits[0], fovLimits[1]);
+
+        error(errMsg);
+    }
+
+
+    toml_datum_t fovT = GetConfigParam(result, (char*)headerName, "fov", TOML_FP64);
+
+    float camPos[3];
+    GetConfigVec3(result, camPos, (char*)headerName, "camera_position");
+
+    toml_datum_t aaT = GetConfigParam(result, (char*)headerName, "anti_aliasing", TOML_BOOLEAN);
+
+    RenderSettings settings = {
+        .width = widthT.u.int64,
+        .height = heightT.u.int64,
+        .fov = fovT.u.fp64,
+        .fullscreen = fullscreenT.u.boolean,
+        .aaEnabled = aaT.u.boolean
+    };
+
+    memcpy(settings.fovLimits, fovLimits, sizeof(fovLimits));
+    memcpy(settings.cameraPosition, camPos, sizeof(camPos));
+
+    return settings;
+}
+
 Scene ParseSceneConfig(const char *filename) {
     toml_result_t result = toml_parse_file_ex(filename);
 
@@ -198,6 +252,8 @@ void CreateBVH(Scene *scene) {
 }
 
 int main(int argc, char *argv[]) {
+    RenderSettings settings = ParseRendererConfig("./configs/renderer.toml");
+
     Scene scene;
 
     if (argc == 1) {
@@ -211,24 +267,20 @@ int main(int argc, char *argv[]) {
 
     CreateBVH(&scene);
 
-    RenderSettings settings = {
-        .aaEnabled = 0,
-        .width = 1920
-    };
-
-    const float aspectRatio = 16.0f / 9.0f;
-
     const int screenWidth = settings.width;
-    const int screenHeight = (int)(screenWidth / aspectRatio);
+    const int screenHeight = settings.height;
 
-    // SetConfigFlags(FLAG_FULLSCREEN_MODE);
+    if (settings.fullscreen == 1) SetConfigFlags(FLAG_FULLSCREEN_MODE);
 
     InitWindow(screenWidth, screenHeight, "Simple Raytracer");
 
     Camera camera = {
-        .position = {0.0f, 0.0f, 2.0f},
-        .fovy = 75.0f
+        .fovy = settings.fov
     };
+
+    camera.position.x = settings.cameraPosition[0];
+    camera.position.y = settings.cameraPosition[1];
+    camera.position.z = settings.cameraPosition[2];
 
     SetTargetFPS(100);
 
@@ -264,7 +316,7 @@ int main(int argc, char *argv[]) {
         BasisVectors vectors = Look(&yaw, &pitch);
 
         int changed = 0;
-        if (Movement(&camera, vectors) || Zoom(&camera) || Settings(&settings)) {
+        if (Movement(&camera, vectors) || Zoom(&camera, settings) || Settings(&settings)) {
             changed = 1;
         } else if (GetMouseDelta().x != 0.0f || GetMouseDelta().y != 0.0f) {
             changed = 1;
