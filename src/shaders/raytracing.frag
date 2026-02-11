@@ -1,7 +1,7 @@
 #version 330
 
-#define SPHERE 0
-#define BVH 1
+#define BVH 0
+#define SPHERE 1
 #define NONE -1
 
 #define LAMBERTIAN 0

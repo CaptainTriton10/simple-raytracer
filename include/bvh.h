@@ -103,8 +103,8 @@ int InitBVHNode(Scene *scene, size_t start, size_t end) {
     node->bbox = spanBox;
 
     if (objectSpan == 1) {
-        node->left = (HittableRef) {HITTABLE_SPHERE, start};
-        node->right = (HittableRef) {HITTABLE_SPHERE, start};
+        node->left = (HittableRef) {SPHERE, start};
+        node->right = (HittableRef) {SPHERE, start};
     } else if (objectSpan == 2) {
         node->left = (HittableRef) {HITTABLE_SPHERE, start};
         node->right = (HittableRef) {HITTABLE_SPHERE, start + 1};
@@ -116,8 +116,8 @@ int InitBVHNode(Scene *scene, size_t start, size_t end) {
         int leftNode = InitBVHNode(scene, start, mid);
         int rightNode = InitBVHNode(scene, mid, end);
 
-        node->left = (HittableRef) {HITTABLE_BVH_NODE, leftNode};
-        node->right = (HittableRef) {HITTABLE_BVH_NODE, rightNode};
+        node->left = (HittableRef) {BVH_NODE, leftNode};
+        node->right = (HittableRef) {BVH_NODE, rightNode};
     }
 
     return nodeIndex;
