@@ -1,0 +1,66 @@
+[data]
+objects = ["back", "ceiling", "floor", "green", "red", "light", "sphere"]
+
+[back]
+type = "quad"
+Q = [0.0, 0.0, 0.0]
+u = [-2.0, 0.0, 0.0]
+v = [0.0, 2.0, 0.0]
+material = "mat_white"
+
+[ceiling]
+type = "quad"
+Q = [0.0, 2.0, 0.0]
+u = [-2.0, 0.0, 0.0]
+v = [0.0, 0.0, 2.0]
+material = "mat_white"
+
+[floor]
+type = "quad"
+Q = [0.0, 0.0, 0.0]
+u = [-2.0, 0.0, 0.0]
+v = [0.0, 0.0, 2.0]
+material = "mat_white"
+
+[green]
+type = "quad"
+Q = [-2.0, 0.0, 0.0]
+u = [0.0, 0.0, 2.0]
+v = [0.0, 2.0, 0.0]
+material = "mat_green"
+
+[red]
+type = "quad"
+Q = [0.0, 0.0, 0.0]
+u = [0.0, 0.0, 2.0]
+v = [0.0, 2.0, 0.0]
+material = "mat_red"
+
+[light]
+type = "quad"
+Q = [-0.67, 1.995, 0.67]
+u = [-0.67, 0.0, 0.0]
+v = [0.0, 0.0, 0.67]
+material = "mat_emissive"
+
+[sphere]
+type = "sphere"
+position = [-1.0, 0.5, 1.0]
+radius = 0.5
+material = "mat_white"
+
+[mat_white]
+type = "diffuse"
+albedo = [1.0, 1.0, 1.0]
+
+[mat_red]
+type = "diffuse"
+albedo = [1.0, 0.0, 0.0]
+
+[mat_green]
+type = "diffuse"
+albedo = [0.0, 1.0, 0.0]
+
+[mat_emissive]
+type = "emissive"
+emission = [1000.0, 1000.0, 1000.0]

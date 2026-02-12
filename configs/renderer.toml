@@ -1,10 +1,10 @@
 [settings]
 width = 1920
 height = 1080
-fullscreen = true
+fullscreen = false
 
 fov_limits = [10.0, 100.0]
 fov = 50.0
-camera_position = [5.0, 0.0, 0.0]
+camera_position = [-1.0, 1.0, 3.0]
 
 anti_aliasing = false

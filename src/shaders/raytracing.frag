@@ -10,9 +10,9 @@
 #define DIELECTRIC 2
 #define EMISSIVE 3
 
-#define MAX_OBJECTS 13
+#define MAX_OBJECTS 7
 #define MAX_BVH_STACK 8
-#define MAX_DEPTH 5
+#define MAX_DEPTH 500
 
 #define POS_INFINITY 100000000
 #define PI 3.1415926
@@ -273,7 +273,7 @@ bool LambertianScatter(Material mat, Ray ray, HitRecord rec, inout vec3 attenuat
 
     scattered = Ray(rec.pos, scatterDirection);
 
-    attenuation = ImageTextureValue(uvTex, rec.uv, rec.pos);
+    attenuation = mat.albedo;
 
     return true;
 }
@@ -321,11 +321,19 @@ void GetSphereUV(vec3 p, out vec2 uv) {
     uv.y = theta / PI;
 }
 
-void InitQuad(inout Quad quad, vec3 Q, vec3 u, vec3 v) {
+Quad InitQuad(vec3 Q, vec3 u, vec3 v, Material mat) {
+    Quad quad;
+    quad.Q = Q;
+    quad.u = u;
+    quad.v = v;
+    quad.material = mat;
+
     vec3 n = cross(u, v);
     quad.normal = normalize(n);
     quad.D = dot(quad.normal, Q);
     quad.w = n / dot(n, n);
+
+    return quad;
 }
 
 bool HitSphere(Sphere sphere, Ray ray, Interval rayT, inout HitRecord rec) {
@@ -417,21 +425,32 @@ bool HitAABB(vec3 minB, vec3 maxB, Ray ray, float tMin, float tMax) {
 bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
     if (object.type == SPHERE) {
         Material mat = Material(
-                int(object.data1.x), // Material type
-                object.data1.yzw, // Albedo
-                object.data3.xyz, // Emission
-                object.data2.x, // Roughness
-                object.data2.y // IOR
+                int(object.data2.x), // Material type
+                object.data2.yzw, // Albedo
+                object.data4.xyz, // Emission
+                object.data3.x, // Roughness
+                object.data3.y // IOR
             );
-        Sphere sphere = Sphere(object.data0.xyz, object.data0.w, mat);
+        Sphere sphere = Sphere(object.data1.xyz, object.data1.w, mat);
 
         return HitSphere(sphere, ray, rayT, rec);
-    } if (object.type == QUAD) {
+    }
+    if (object.type == QUAD) {
         Material mat = Material(
-            int(object.data1)
-        );
-        Quad q =
+                int(object.data3.x),
+                object.data3.yzw,
+                object.data4.xyz,
+                object.data2.w,
+                object.data1.w
+            );
 
+        vec3 Q = object.data0.yzw;
+        vec3 u = object.data1.xyz;
+        vec3 v = object.data2.xyz;
+
+        Quad quad = InitQuad(Q, u, v, mat);
+
+        return HitQuad(quad, ray, rayT, rec);
     }
     else if (object.type == NONE) {
         // Do nothing
@@ -458,13 +477,14 @@ bool HitWorld(Ray ray, Interval rayT, out HitRecord rec, Hittable objects[MAX_OB
 Hittable GetHittable(int i) {
     Hittable object;
 
-    object.type = int(texelFetch(data, ivec2(0, i), 0).x);
-    object.isActive = true;
+    object.data0 = texelFetch(data, ivec2(0, i), 0);
+    object.data1 = texelFetch(data, ivec2(1, i), 0);
+    object.data2 = texelFetch(data, ivec2(2, i), 0);
+    object.data3 = texelFetch(data, ivec2(3, i), 0);
+    object.data4 = texelFetch(data, ivec2(4, i), 0);
 
-    object.data0 = texelFetch(data, ivec2(1, i), 0);
-    object.data1 = texelFetch(data, ivec2(2, i), 0);
-    object.data2 = texelFetch(data, ivec2(3, i), 0);
-    object.data3 = texelFetch(data, ivec2(4, i), 0);
+    object.isActive = true;
+    object.type = int(object.data0.x);
 
     return object;
 }
@@ -517,7 +537,7 @@ bool HitBVH(Ray ray, out HitRecord rec) {
             stack[sp++] = leftFirst ? node.leftIndex : node.rightIndex;
         }
 
-        if (node.leftType == SPHERE) {
+        if (node.leftType != BVH) {
             HitRecord temp;
 
             if (HitHittable(GetHittable(node.leftIndex), ray, Interval(0.001, closest), temp)) {
@@ -527,7 +547,7 @@ bool HitBVH(Ray ray, out HitRecord rec) {
             }
         }
 
-        if (node.rightType == SPHERE) {
+        if (node.rightType != BVH) {
             HitRecord temp;
 
             if (HitHittable(GetHittable(node.rightIndex), ray, Interval(0.001, closest), temp)) {
@@ -597,8 +617,8 @@ vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
             float a = 0.5 * (unitDirection.y + 1.0f);
 
             vec3 sky = mix(
-                    vec3(1.0, 1.0, 1.0),
-                    vec3(0.5, 0.7, 1.0),
+                    vec3(0.1),
+                    vec3(0.0),
                     a
                 );
 
@@ -705,7 +725,7 @@ void main() {
     // Fill the rest as empty
     for (int i = 0; i < MAX_OBJECTS; i++) {
         if (!objects[i].isActive) {
-            objects[i] = Hittable(NONE, vec4(0.0), vec4(0.0), vec4(0.0), vec4(0.0), false);
+            objects[i] = Hittable(NONE, vec4(0.0), vec4(0.0), vec4(0.0), vec4(0.0), vec4(0.0), false);
         }
     }
 

@@ -191,7 +191,6 @@ Scene ParseSceneConfig(const char *filename) {
         if (objectsT.u.arr.elem[i].type == TOML_STRING){
             objNames[i] = _strdup(objectsT.u.arr.elem[i].u.s);
 
-            toml_datum_t objType = GetConfigParam(result, objNames[i], "type", TOML_STRING);
             objects[i] = GetConfigObject(result, objNames[i]);
         } else {
             error("Object name is not a string.");
@@ -259,7 +258,7 @@ int main(int argc, char *argv[]) {
     camera.position.y = settings.cameraPosition[1];
     camera.position.z = settings.cameraPosition[2];
 
-    SetTargetFPS(100);
+    SetTargetFPS(1000);
 
     Texture2D data = CreateSceneData(scene.objects, scene.objCount);
     Texture2D bvhData = CreateBVHData(scene.nodes, scene.nodeCount);
