@@ -2,6 +2,7 @@
 
 #define BVH 0
 #define SPHERE 1
+#define QUAD 2
 #define NONE -1
 
 #define LAMBERTIAN 0
@@ -79,7 +80,7 @@ Sphere:
 */
 struct Hittable {
     int type;
-    vec4 data0, data1, data2, data3;
+    vec4 data0, data1, data2, data3, data4;
     bool isActive;
 };
 
@@ -113,6 +114,16 @@ struct Camera {
 struct Sphere {
     vec3 pos;
     float radius;
+    Material material;
+};
+
+struct Quad {
+    vec3 Q;
+    vec3 u;
+    vec3 v;
+    vec3 normal;
+    float D;
+    vec3 w;
     Material material;
 };
 
@@ -310,6 +321,13 @@ void GetSphereUV(vec3 p, out vec2 uv) {
     uv.y = theta / PI;
 }
 
+void InitQuad(inout Quad quad, vec3 Q, vec3 u, vec3 v) {
+    vec3 n = cross(u, v);
+    quad.normal = normalize(n);
+    quad.D = dot(quad.normal, Q);
+    quad.w = n / dot(n, n);
+}
+
 bool HitSphere(Sphere sphere, Ray ray, Interval rayT, inout HitRecord rec) {
     vec3 oc = sphere.pos - ray.origin;
 
@@ -346,6 +364,42 @@ bool HitSphere(Sphere sphere, Ray ray, Interval rayT, inout HitRecord rec) {
     return true;
 }
 
+bool QuadIsInterior(Quad quad, float a, float b, inout HitRecord rec) {
+    Interval unitInterval = Interval(0, 1);
+
+    if (!IntervalContains(unitInterval, a) || !IntervalContains(unitInterval, b)) return false;
+
+    rec.uv.x = a;
+    rec.uv.y = b;
+
+    return true;
+}
+
+bool HitQuad(Quad quad, Ray ray, Interval rayT, inout HitRecord rec) {
+    float denom = dot(quad.normal, ray.direction);
+
+    if (abs(denom) < 1e-8) return false;
+
+    float t = (quad.D - dot(quad.normal, ray.origin)) / denom;
+    if (!IntervalContains(rayT, t)) return false;
+
+    vec3 intersection = At(ray, t);
+    vec3 planarHitptVector = intersection - quad.Q;
+    float alpha = dot(quad.w, cross(planarHitptVector, quad.v));
+    float beta = dot(quad.w, cross(quad.u, planarHitptVector));
+
+    if (!QuadIsInterior(quad, alpha, beta, rec)) return false;
+
+    HitRecord temp;
+    temp.t = t;
+    temp.pos = intersection;
+    temp.material = quad.material;
+    SetFaceNormal(temp, ray, quad.normal);
+
+    rec = temp;
+    return true;
+}
+
 bool HitAABB(vec3 minB, vec3 maxB, Ray ray, float tMin, float tMax) {
     vec3 invD = 1.0 / ray.direction;
     vec3 t0 = (minB - ray.origin) * invD;
@@ -372,7 +426,14 @@ bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
         Sphere sphere = Sphere(object.data0.xyz, object.data0.w, mat);
 
         return HitSphere(sphere, ray, rayT, rec);
-    } else if (object.type == NONE) {
+    } if (object.type == QUAD) {
+        Material mat = Material(
+            int(object.data1)
+        );
+        Quad q =
+
+    }
+    else if (object.type == NONE) {
         // Do nothing
         return false;
     }
