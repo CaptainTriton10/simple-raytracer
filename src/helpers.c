@@ -1,6 +1,7 @@
 #include "../include/helpers.h"
 #include "../include/tomlc17.h"
 #include "raylib.h"
+#include "raymath.h"
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -363,10 +364,6 @@ void SetDenoiserValues(Shader shader, DenoiserShaderLocations locs, DenoiserShad
     SetShaderValue(shader, locs.frame, &values.frame, SHADER_UNIFORM_INT);
 }
 
-float Clampf(float value, float min, float max) {
-    return fmaxf(min, fminf(value, max));
-}
-
 void NormaliseVec3(float *v) {
     float n[3];
     memcpy(n, v, sizeof(float) * 3);
@@ -444,7 +441,7 @@ bool Zoom(Camera *camera, RenderSettings settings) {
     float zoomFactor = CAMERA_ZOOM_SPEED * GetFrameTime();
     float scroll = 1 + zoomFactor * GetMouseWheelMove();
 
-    camera->fovy = Clampf(camera->fovy / scroll, settings.fovLimits[0], settings.fovLimits[1]);
+    camera->fovy = Clamp(camera->fovy / scroll, settings.fovLimits[0], settings.fovLimits[1]);
 
     // If the camera was zoomed this frame
     if (scroll != 1.0) {
@@ -464,7 +461,7 @@ BasisVectors Look(float *yaw, float *pitch) {
 
     *yaw -= mouseDelta.x;
     *pitch -= mouseDelta.y;
-    *pitch = Clampf(*pitch, -85.0f * DEG2RAD, 85.0f * DEG2RAD);
+    *pitch = Clamp(*pitch, -85.0f * DEG2RAD, 85.0f * DEG2RAD);
 
     float forward[3] = {
         cosf(*pitch) * cosf(*yaw),

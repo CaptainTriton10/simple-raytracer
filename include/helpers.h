@@ -148,7 +148,6 @@ void SetRaytracerValues(Shader shader, RaytracerShaderLocations locs, RaytracerS
 DenoiserShaderLocations GetDenoiserLocations(Shader shader);
 void SetDenoiserValues(Shader shader, DenoiserShaderLocations locs, DenoiserShaderValues values);
 
-float Clampf(float value, float min, float max);
 void NormaliseVec3(float v[3]);
 void CrossVec3(float v[3], float a[3], float b[3]);
 
