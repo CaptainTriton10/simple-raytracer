@@ -197,10 +197,17 @@ Scene ParseSceneConfig(const char *filename) {
         }
     }
 
+    float skyColour[3] = {1.0, 0.0, 1.0};
+    if (toml_seek(result.toptab, "world.sky_colour").type == TOML_ARRAY) {
+        GetConfigVec3(result, skyColour, "world", "sky_colour");
+    }
+
     Scene scene = {
         .objCount = objCount,
-        .objects = objects
+        .objects = objects,
     };
+
+    memcpy(scene.sky, skyColour, sizeof(skyColour));
 
     toml_free(result);
 
@@ -306,6 +313,7 @@ int main(int argc, char *argv[]) {
             .dataSize = scene.objCount,
             .fov = camera.fovy,
             .cameraCenter = pos,
+            .skyColour = scene.sky,
             .forward = vectors.forward,
             .right = vectors.right,
             .up = vectors.up,

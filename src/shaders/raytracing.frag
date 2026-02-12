@@ -31,6 +31,8 @@ uniform sampler2D uvTex;
 uniform float fov;
 uniform vec3 cameraCenter;
 
+uniform vec3 skyColour;
+
 uniform vec3 forward;
 uniform vec3 right;
 uniform vec3 up;
@@ -616,11 +618,7 @@ vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
             vec3 unitDirection = normalize(currentRay.direction);
             float a = 0.5 * (unitDirection.y + 1.0f);
 
-            vec3 sky = mix(
-                    vec3(0.1),
-                    vec3(0.0),
-                    a
-                );
+            vec3 sky = skyColour;
 
             return attenuationAccum * sky;
         }

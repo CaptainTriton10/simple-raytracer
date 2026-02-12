@@ -1,6 +1,9 @@
 [data]
 objects = ["ground", "glass_ball", "metal_ball", "diffuse_ball"]
 
+[world]
+sky_colour = [1.0, 1.0, 1.0]
+
 [ground]
 type = "sphere"
 position = [0.0, -100.5, 0.0]

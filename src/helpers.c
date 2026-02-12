@@ -320,6 +320,7 @@ RaytracerShaderLocations GetRaytracerLocations(Shader shader) {
         .resolution = GetShaderLocation(shader, "resolution"),
         .fov = GetShaderLocation(shader, "fov"),
         .cameraCenter = GetShaderLocation(shader, "cameraCenter"),
+        .skyColour = GetShaderLocation(shader, "skyColour"),
         .forward = GetShaderLocation(shader, "forward"),
         .right = GetShaderLocation(shader, "right"),
         .up = GetShaderLocation(shader, "up"),
@@ -338,6 +339,8 @@ void SetRaytracerValues(Shader shader, RaytracerShaderLocations locs, RaytracerS
 
     SetShaderValue(shader, locs.fov, &values.fov, SHADER_UNIFORM_FLOAT);
     SetShaderValue(shader, locs.cameraCenter, values.cameraCenter, SHADER_UNIFORM_VEC3);
+
+    SetShaderValue(shader, locs.skyColour, values.skyColour, SHADER_UNIFORM_VEC3);
 
     SetShaderValue(shader, locs.forward, values.forward, SHADER_UNIFORM_VEC3);
     SetShaderValue(shader, locs.right, values.right, SHADER_UNIFORM_VEC3);

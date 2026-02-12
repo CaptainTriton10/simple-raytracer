@@ -67,6 +67,7 @@ typedef struct Hittable {
 typedef struct Scene {
     Hittable *objects;
     size_t objCount;
+    float sky[3];
     AABB bbox;
     int nodeCount;
     BVHNode *nodes;
@@ -87,6 +88,7 @@ typedef struct RaytracerShaderValues {
     float *resolution;
     float fov;
     float *cameraCenter;
+    float *skyColour;
     float *forward;
     float *right;
     float *up;
@@ -99,6 +101,7 @@ typedef struct RaytracerShaderLocations {
     int resolution;
     int fov;
     int cameraCenter;
+    int skyColour;
     int forward;
     int right;
     int up;
