@@ -171,6 +171,66 @@ RenderSettings ParseRendererConfig(const char *filename) {
     return settings;
 }
 
+void CubeToQuads(Quad *quads, Cube cube) {
+    Vector3 min = {
+        fmin(cube.a.x, cube.b.x),
+        fmin(cube.a.y, cube.b.y),
+        fmin(cube.a.z, cube.b.z),
+    };
+
+    Vector3 max = {
+        fmax(cube.a.x, cube.b.x),
+        fmax(cube.a.y, cube.b.y),
+        fmax(cube.a.z, cube.b.z),
+    };
+
+    Vector3 dx = {max.x - min.x, 0.0, 0.0};
+    Vector3 dy = {0.0, max.y - min.y, 0.0};
+    Vector3 dz = {0.0, 0.0, max.z - min.z};
+
+    quads[0] = (Quad){
+        .Q = {min.x, min.y, max.z},
+        .u = dx,
+        .v = dy,
+        .material = cube.material
+    };
+
+    quads[1] = (Quad){
+        .Q = {max.x, min.y, max.z},
+        .u = Vector3Invert(dz),
+        .v = dy,
+        .material = cube.material
+    };
+
+    quads[2] = (Quad){
+        .Q = {min.x, min.y, min.z},
+        .u = Vector3Invert(dx),
+        .v = dy,
+        .material = cube.material
+    };
+
+    quads[3] = (Quad){
+        .Q = {min.x, min.y, min.z},
+        .u = dz,
+        .v = dy,
+        .material = cube.material
+    };
+
+    quads[4] = (Quad){
+        .Q = {min.x, max.y, max.z},
+        .u = dx,
+        .v = Vector3Invert(dz),
+        .material = cube.material
+    };
+
+    quads[5] = (Quad){
+        .Q = {min.x, min.y, min.z},
+        .u = dx,
+        .v = dz,
+        .material = cube.material
+    };
+}
+
 Scene ParseSceneConfig(const char *filename) {
     toml_result_t result = toml_parse_file_ex(filename);
 

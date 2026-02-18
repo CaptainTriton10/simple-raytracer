@@ -10,6 +10,7 @@
 #define BVH_NODE 0
 #define SPHERE 1
 #define QUAD 2
+#define CUBE 3
 
 #define LAMBERTIAN 0
 #define METAL 1
@@ -45,18 +46,24 @@ typedef struct ShaderMaterial {
 } ShaderMaterial;
 
 typedef struct Sphere {
-    float pos[3];
+    Vector3 pos;
     float radius;
     ShaderMaterial material;
     AABB bbox;
 } Sphere;
 
 typedef struct Quad {
-    float Q[3];
-    float u[3], v[3];
+    Vector3 Q;
+    Vector3 u, v;
     ShaderMaterial material;
     AABB bbox;
 } Quad;
+
+typedef struct Cube {
+    Vector3 a;
+    Vector3 b;
+    ShaderMaterial material;
+} Cube;
 
 typedef struct Hittable {
     int type;

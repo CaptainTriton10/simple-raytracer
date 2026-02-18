@@ -22,9 +22,9 @@ Hittable TranslateSphereData(Sphere s) {
 
     h.data[0].x = SPHERE;
 
-    h.data[1].x = s.pos[0];
-    h.data[1].y = s.pos[1];
-    h.data[1].z = s.pos[2];
+    h.data[1].x = s.pos.x;
+    h.data[1].y = s.pos.y;
+    h.data[1].z = s.pos.z;
     h.data[1].w = s.radius;
 
     h.data[2].x = s.material.type;
@@ -55,7 +55,7 @@ Sphere HittableToSphere(Hittable h) {
     memcpy(mat.albedo, albedo, sizeof(albedo));
     memcpy(mat.emission, emission, sizeof(emission));
 
-    float position[3] = {
+    Vector3 position = {
         h.data[1].x,
         h.data[1].y,
         h.data[1].z,
@@ -63,10 +63,9 @@ Sphere HittableToSphere(Hittable h) {
 
     Sphere s = {
         .radius = h.data[1].w,
-        .material = mat
+        .material = mat,
+        .pos = position
     };
-
-    memcpy(s.pos, position, sizeof(position));
 
     return s;
 }
@@ -76,18 +75,18 @@ Hittable TranslateQuadData(Quad q) {
     h.type = QUAD;
 
     h.data[0].x = QUAD;
-    h.data[0].y = q.Q[0];
-    h.data[0].z = q.Q[1];
-    h.data[0].w = q.Q[2];
+    h.data[0].y = q.Q.x;
+    h.data[0].z = q.Q.y;
+    h.data[0].w = q.Q.z;
 
-    h.data[1].x = q.u[0];
-    h.data[1].y = q.u[1];
-    h.data[1].z = q.u[2];
+    h.data[1].x = q.u.x;
+    h.data[1].y = q.u.y;
+    h.data[1].z = q.u.z;
     h.data[1].w = q.material.ior;
 
-    h.data[2].x = q.v[0];
-    h.data[2].y = q.v[1];
-    h.data[2].z = q.v[2];
+    h.data[2].x = q.v.x;
+    h.data[2].y = q.v.y;
+    h.data[2].z = q.v.z;
     h.data[2].w = q.material.roughness;
 
     h.data[3].x = q.material.type;
@@ -115,17 +114,16 @@ Quad HittableToQuad(Hittable h) {
     memcpy(mat.albedo, albedo, sizeof(albedo));
     memcpy(mat.emission, emission, sizeof(emission));
 
-    float q[3] = {h.data[0].y, h.data[0].z, h.data[0].w};
-    float u[3] = {h.data[1].x, h.data[1].y, h.data[1].z};
-    float v[3] = {h.data[2].x, h.data[2].y, h.data[2].z};
+    Vector3 q = {h.data[0].y, h.data[0].z, h.data[0].w};
+    Vector3 u = {h.data[1].x, h.data[1].y, h.data[1].z};
+    Vector3 v = {h.data[2].x, h.data[2].y, h.data[2].z};
 
     Quad quad = {
+        .Q = q,
+        .u = u,
+        .v = v,
         .material = mat
     };
-
-    memcpy(quad.Q, q, sizeof(q));
-    memcpy(quad.u, u, sizeof(u));
-    memcpy(quad.v, v, sizeof(v));
 
     return quad;
 }
@@ -262,8 +260,9 @@ Hittable GetConfigObject(toml_result_t table, char *name) {
     if (strcmp(objType.u.s, "sphere") == 0) {
         object.type = SPHERE;
 
-        float position[3];
-        GetConfigVec3(table, position, name, "position");
+        float position3[3];
+        GetConfigVec3(table, position3, name, "position");
+        Vector3 position = {position3[0], position3[1], position3[2]};
 
         toml_datum_t radiusT = GetConfigParam(table, name, "radius", TOML_FP64);
 
@@ -271,36 +270,37 @@ Hittable GetConfigObject(toml_result_t table, char *name) {
         ShaderMaterial mat = GetConfigMaterial(table, (char*)materialT.u.s);
 
         Sphere sphere = {
+            .pos = position,
             .radius = radiusT.u.fp64,
             .material = mat
         };
-
-        memcpy(sphere.pos, position, sizeof(position));
 
         object = TranslateSphereData(sphere);
 
     } else if (strcmp(objType.u.s, "quad") == 0) {
         object.type = QUAD;
 
-        float q[3];
-        GetConfigVec3(table, q, name, "Q");
+        float q3[3];
+        GetConfigVec3(table, q3, name, "Q");
+        Vector3 q = {q3[0], q3[1], q3[2]};
 
-        float u[3];
-        GetConfigVec3(table, u, name, "u");
+        float u3[3];
+        GetConfigVec3(table, u3, name, "u");
+        Vector3 u = {u3[0], u3[1], u3[2]};
 
-        float v[3];
-        GetConfigVec3(table, v, name, "v");
+        float v3[3];
+        GetConfigVec3(table, v3, name, "v");
+        Vector3 v = {v3[0], v3[1], v3[2]};
 
         toml_datum_t materialT = GetConfigParam(table, name, "material", TOML_STRING);
         ShaderMaterial mat = GetConfigMaterial(table, (char*)materialT.u.s);
 
         Quad quad = {
-            .material = mat
+            .material = mat,
+            .Q = q,
+            .u = u,
+            .v = v
         };
-
-        memcpy(quad.Q, q, sizeof(q));
-        memcpy(quad.u, u, sizeof(u));
-        memcpy(quad.v, v, sizeof(v));
 
         object = TranslateQuadData(quad);
     }
@@ -388,6 +388,12 @@ void CrossVec3(float *v, float *a, float *b) {
     };
 
     memcpy(v, n, sizeof(float) * 3);
+}
+
+void Vec3ToArray(float *arr, Vector3 vec) {
+    arr[0] = vec.x;
+    arr[1] = vec.y;
+    arr[2] = vec.z;
 }
 
 bool Movement(Camera *camera, BasisVectors vectors) {

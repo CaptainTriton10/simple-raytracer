@@ -54,16 +54,16 @@ void InitAABB2(AABB *aabb, AABB box0, AABB box1) {
 
 void CalculateSphereBBox(Sphere *s) {
     Vector3 rvec = {s->radius, s->radius, s->radius};
-    Vector3 staticCenter = {s->pos[0], s->pos[1], s->pos[2]};
+    Vector3 staticCenter = {s->pos.x, s->pos.y, s->pos.z};
 
     InitAABB(&s->bbox, Vector3Subtract(staticCenter, rvec),  Vector3Add(staticCenter, rvec));
 }
 
 void CalculateQuadBBox(Quad *quad) {
-    Vector3 q = {quad->Q[0], quad->Q[1], quad->Q[2]};
+    Vector3 q = {quad->Q.x, quad->Q.y, quad->Q.z};
 
-    Vector3 u = {quad->u[0], quad->u[1], quad->u[2]};
-    Vector3 v = {quad->v[0], quad->v[1], quad->v[2]};
+    Vector3 u = {quad->u.x, quad->u.y, quad->u.z};
+    Vector3 v = {quad->v.x, quad->v.y, quad->v.z};
 
     AABB diagonal1;
     InitAABB(&diagonal1, q, Vector3Add(q, Vector3Add(u, v)));
