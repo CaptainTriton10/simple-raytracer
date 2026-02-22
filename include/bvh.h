@@ -143,14 +143,14 @@ int InitBVHNode(Scene *scene, size_t start, size_t end) {
 
     if (objectSpan == 1) {
         node->left = (HittableRef) {scene->objects[start].type, start};
-        node->right = (HittableRef) {scene->objects[start].type, start};
+        node->right = (HittableRef) { NONE, -1};
     } else if (objectSpan == 2) {
         node->left = (HittableRef) {scene->objects[start].type, start};
         node->right = (HittableRef) {scene->objects[start].type, start + 1};
     } else {
         qsort_s(&scene->objects[start], objectSpan, sizeof(Hittable), BoxCompare, &axis);
 
-        int mid = start + objectSpan / 2.0f;
+        int mid = start + objectSpan / 2;
 
         int leftNode = InitBVHNode(scene, start, mid);
         int rightNode = InitBVHNode(scene, mid, end);

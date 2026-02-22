@@ -1,8 +1,14 @@
 [data]
-objects = ["ground", "glass_ball", "metal_ball", "diffuse_ball"]
+objects = ["ground", "glass_ball", "metal_ball", "diffuse_ball", "cube"]
 
 [world]
 sky_colour = [1.0, 1.0, 1.0]
+
+[cube]
+type = "cube"
+a = [0.0, 0.0, 0.0]
+b = [1.0, 2.0, 1.0]
+material = "mat_ground"
 
 [ground]
 type = "sphere"

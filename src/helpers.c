@@ -2,6 +2,7 @@
 #include "../include/tomlc17.h"
 #include "raylib.h"
 #include "raymath.h"
+#include <stddef.h>
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -71,7 +72,7 @@ Sphere HittableToSphere(Hittable h) {
 }
 
 Hittable TranslateQuadData(Quad q) {
-    Hittable h;
+    Hittable h = {0};
     h.type = QUAD;
 
     h.data[0].x = QUAD;
@@ -186,7 +187,7 @@ void GetConfigVec2(toml_result_t table, float *vec, char *section, char *item) {
         error(errMsg);
     }
 
-    float result[3];
+    float result[2];
 
     for (int i = 0; i < 2; i++) {
         result[i] = (float) param.u.arr.elem[i].u.fp64;
@@ -252,13 +253,71 @@ ShaderMaterial GetConfigMaterial(toml_result_t table, char *name) {
     return material;
 }
 
-Hittable GetConfigObject(toml_result_t table, char *name) {
+void CubeToQuads(Quad *quads, Cube cube) {
+    Vector3 min = {
+        fmin(cube.a.x, cube.b.x),
+        fmin(cube.a.y, cube.b.y),
+        fmin(cube.a.z, cube.b.z),
+    };
+
+    Vector3 max = {
+        fmax(cube.a.x, cube.b.x),
+        fmax(cube.a.y, cube.b.y),
+        fmax(cube.a.z, cube.b.z),
+    };
+
+    Vector3 dx = {max.x - min.x, 0.0, 0.0};
+    Vector3 dy = {0.0, max.y - min.y, 0.0};
+    Vector3 dz = {0.0, 0.0, max.z - min.z};
+
+    quads[0] = (Quad){
+        .Q = {min.x, min.y, max.z},
+        .u = dx,
+        .v = dy,
+        .material = cube.material
+    };
+
+    quads[1] = (Quad){
+        .Q = {max.x, min.y, max.z},
+        .u = Vector3Negate(dz),
+        .v = dy,
+        .material = cube.material
+    };
+
+    quads[2] = (Quad){
+        .Q = {max.x, min.y, min.z},
+        .u = Vector3Negate(dx),
+        .v = dy,
+        .material = cube.material
+    };
+
+    quads[3] = (Quad){
+        .Q = {min.x, min.y, min.z},
+        .u = dz,
+        .v = dy,
+        .material = cube.material
+    };
+
+    quads[4] = (Quad){
+        .Q = {min.x, max.y, max.z},
+        .u = dx,
+        .v = Vector3Negate(dz),
+        .material = cube.material
+    };
+
+    quads[5] = (Quad){
+        .Q = {min.x, min.y, min.z},
+        .u = dx,
+        .v = dz,
+        .material = cube.material
+    };
+}
+
+size_t GetConfigObject(Hittable *objects, toml_result_t table, char *name) {
     toml_datum_t objType = GetConfigParam(table, name, "type", TOML_STRING);
 
-    Hittable object;
-
     if (strcmp(objType.u.s, "sphere") == 0) {
-        object.type = SPHERE;
+        objects[0].type = SPHERE;
 
         float position3[3];
         GetConfigVec3(table, position3, name, "position");
@@ -275,10 +334,10 @@ Hittable GetConfigObject(toml_result_t table, char *name) {
             .material = mat
         };
 
-        object = TranslateSphereData(sphere);
-
+        *objects = TranslateSphereData(sphere);
+        return 1;
     } else if (strcmp(objType.u.s, "quad") == 0) {
-        object.type = QUAD;
+        objects[0].type = QUAD;
 
         float q3[3];
         GetConfigVec3(table, q3, name, "Q");
@@ -302,10 +361,39 @@ Hittable GetConfigObject(toml_result_t table, char *name) {
             .v = v
         };
 
-        object = TranslateQuadData(quad);
+        *objects = TranslateQuadData(quad);
+        return 1;
+    } else if (strcmp(objType.u.s, "cube") == 0) {
+        toml_datum_t materialT = GetConfigParam(table, name, "material", TOML_STRING);
+        ShaderMaterial mat = GetConfigMaterial(table, (char*)materialT.u.s);
+
+        float a[3];
+        GetConfigVec3(table, a, name, "a");
+
+        float b[3];
+        GetConfigVec3(table, a, name, "b");
+
+        Cube cube = {
+            .a = {a[0], a[1], a[2]},
+            .b = {b[0], b[1], b[2]},
+            .material = mat
+        };
+
+        Quad quads[6];
+        CubeToQuads(quads, cube);
+
+        for (int i = 0; i < 6; i++) {
+            objects[i] = TranslateQuadData(quads[i]);
+        }
+
+        return 6;
     }
 
-    return object;
+    char errMsg[128];
+    sprintf(errMsg, "Object type unknown [%s]", objType.u.s);
+
+    error(errMsg);
+    return 0;
 }
 
 void SceneFree(Scene *scene) {
@@ -372,6 +460,13 @@ void NormaliseVec3(float *v) {
     memcpy(n, v, sizeof(float) * 3);
 
     float magnitude = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+
+    // if (magnitude == 0) {
+    //     float zero[3] = {0.0, 0.0, 0.0};
+    //     memcpy(v, zero, sizeof(zero));
+
+    //     return;
+    // }
 
     n[0] /= magnitude;
     n[1] /= magnitude;

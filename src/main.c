@@ -171,66 +171,6 @@ RenderSettings ParseRendererConfig(const char *filename) {
     return settings;
 }
 
-void CubeToQuads(Quad *quads, Cube cube) {
-    Vector3 min = {
-        fmin(cube.a.x, cube.b.x),
-        fmin(cube.a.y, cube.b.y),
-        fmin(cube.a.z, cube.b.z),
-    };
-
-    Vector3 max = {
-        fmax(cube.a.x, cube.b.x),
-        fmax(cube.a.y, cube.b.y),
-        fmax(cube.a.z, cube.b.z),
-    };
-
-    Vector3 dx = {max.x - min.x, 0.0, 0.0};
-    Vector3 dy = {0.0, max.y - min.y, 0.0};
-    Vector3 dz = {0.0, 0.0, max.z - min.z};
-
-    quads[0] = (Quad){
-        .Q = {min.x, min.y, max.z},
-        .u = dx,
-        .v = dy,
-        .material = cube.material
-    };
-
-    quads[1] = (Quad){
-        .Q = {max.x, min.y, max.z},
-        .u = Vector3Invert(dz),
-        .v = dy,
-        .material = cube.material
-    };
-
-    quads[2] = (Quad){
-        .Q = {min.x, min.y, min.z},
-        .u = Vector3Invert(dx),
-        .v = dy,
-        .material = cube.material
-    };
-
-    quads[3] = (Quad){
-        .Q = {min.x, min.y, min.z},
-        .u = dz,
-        .v = dy,
-        .material = cube.material
-    };
-
-    quads[4] = (Quad){
-        .Q = {min.x, max.y, max.z},
-        .u = dx,
-        .v = Vector3Invert(dz),
-        .material = cube.material
-    };
-
-    quads[5] = (Quad){
-        .Q = {min.x, min.y, min.z},
-        .u = dx,
-        .v = dz,
-        .material = cube.material
-    };
-}
-
 Scene ParseSceneConfig(const char *filename) {
     toml_result_t result = toml_parse_file_ex(filename);
 
@@ -244,14 +184,33 @@ Scene ParseSceneConfig(const char *filename) {
     const size_t objCount = objectsT.u.arr.size;
     char *objNames[objCount];
 
-    Hittable *objects = malloc(objCount * sizeof(Hittable));
+    Hittable *objects = NULL;
+    size_t objectsSize = 0;
+
+    size_t primativeCount = 0;
 
     // Get the names of all the objects
     for (int i = 0; i < objCount; i++) {
         if (objectsT.u.arr.elem[i].type == TOML_STRING){
             objNames[i] = _strdup(objectsT.u.arr.elem[i].u.s);
 
-            objects[i] = GetConfigObject(result, objNames[i]);
+            Hittable objBuf[6];
+            size_t objSize = GetConfigObject(objBuf, result, objNames[i]);
+
+            Hittable *newPtr = realloc(objects, sizeof(Hittable) * (objectsSize + objSize));
+            if (!newPtr) {
+                free(objects);
+                error("Memory allocation failed");
+            }
+
+            for (int j = 0; j < objSize; j++) {
+                newPtr[objectsSize + j] = objBuf[j];
+            }
+
+            objectsSize += objSize;
+            primativeCount += objSize;
+
+            objects = newPtr;
         } else {
             error("Object name is not a string.");
         }
@@ -263,7 +222,7 @@ Scene ParseSceneConfig(const char *filename) {
     }
 
     Scene scene = {
-        .objCount = objCount,
+        .objCount = primativeCount,
         .objects = objects,
     };
 

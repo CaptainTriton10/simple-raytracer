@@ -7,6 +7,7 @@
 
 #define DATA_WIDTH 5
 
+#define NONE -1
 #define BVH_NODE 0
 #define SPHERE 1
 #define QUAD 2
@@ -150,7 +151,7 @@ void GetConfigVec3(toml_result_t table, float *vec, char *section, char *item);
 void GetConfigVec2(toml_result_t table, float *vec, char *section, char *item);
 
 ShaderMaterial GetConfigMaterial(toml_result_t table, char *name);
-Hittable GetConfigObject(toml_result_t table, char *name);
+size_t GetConfigObject(Hittable *objects, toml_result_t table, char *name);
 
 RaytracerShaderLocations GetRaytracerLocations(Shader shader);
 void SetRaytracerValues(Shader shader, RaytracerShaderLocations locs, RaytracerShaderValues values);

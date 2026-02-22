@@ -10,8 +10,8 @@
 #define DIELECTRIC 2
 #define EMISSIVE 3
 
-#define MAX_OBJECTS 7
-#define MAX_BVH_STACK 8
+#define MAX_OBJECTS 10
+#define MAX_BVH_STACK 16
 #define MAX_DEPTH 500
 
 #define POS_INFINITY 100000000
@@ -400,13 +400,11 @@ bool HitQuad(Quad quad, Ray ray, Interval rayT, inout HitRecord rec) {
 
     if (!QuadIsInterior(quad, alpha, beta, rec)) return false;
 
-    HitRecord temp;
-    temp.t = t;
-    temp.pos = intersection;
-    temp.material = quad.material;
-    SetFaceNormal(temp, ray, quad.normal);
+    rec.t = t;
+    rec.pos = intersection;
+    rec.material = quad.material;
+    SetFaceNormal(rec, ray, quad.normal);
 
-    rec = temp;
     return true;
 }
 
@@ -716,14 +714,11 @@ void main() {
 
     Hittable objects[MAX_OBJECTS];
 
-    for (int i = 0; i < dataSize; i++) {
-        objects[i] = GetHittable(i);
-    }
-
-    // Fill the rest as empty
     for (int i = 0; i < MAX_OBJECTS; i++) {
-        if (!objects[i].isActive) {
-            objects[i] = Hittable(NONE, vec4(0.0), vec4(0.0), vec4(0.0), vec4(0.0), vec4(0.0), false);
+        if (i <= dataSize) objects[i] = GetHittable(i);
+        else {
+            objects[i].type = NONE;
+            objects[i].isActive = false;
         }
     }
 
