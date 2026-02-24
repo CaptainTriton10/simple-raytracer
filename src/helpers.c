@@ -398,7 +398,7 @@ size_t GetConfigObject(Hittable *objects, toml_result_t table, char *name) {
         GetConfigVec3(table, a, name, "a");
 
         float b[3];
-        GetConfigVec3(table, a, name, "b");
+        GetConfigVec3(table, b, name, "b");
 
         Cube cube = {
             .a = {a[0], a[1], a[2]},
