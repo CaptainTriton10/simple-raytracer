@@ -10,9 +10,8 @@
 #define DIELECTRIC 2
 #define EMISSIVE 3
 
-#define MAX_OBJECTS 10
-#define MAX_BVH_STACK 16
-#define MAX_DEPTH 500
+#define MAX_OBJECTS ${MAX_OBJ}
+#define MAX_BVH_STACK ${MAX_BVH}
 
 #define POS_INFINITY 100000000
 #define PI 3.1415926
@@ -38,6 +37,7 @@ uniform vec3 right;
 uniform vec3 up;
 
 uniform int aaEnabled;
+uniform int maxDepth;
 
 struct Material {
     int type;
@@ -565,7 +565,7 @@ vec3 RayColour(Ray ray, Hittable objects[MAX_OBJECTS]) {
     vec3 attenuationAccum = vec3(1.0);
     Ray currentRay = ray;
 
-    for (int i = 0; i < MAX_DEPTH; i++) {
+    for (int i = 0; i < maxDepth; i++) {
         HitRecord rec;
 
         if (HitBVH(currentRay, rec)) {

@@ -156,13 +156,15 @@ RenderSettings ParseRendererConfig(const char *filename) {
     GetConfigVec3(result, camPos, (char*)headerName, "camera_position");
 
     toml_datum_t aaT = GetConfigParam(result, (char*)headerName, "anti_aliasing", TOML_BOOLEAN);
+    toml_datum_t maxDepthT = GetConfigParam(result, (char*)headerName, "max_depth", TOML_INT64);
 
     RenderSettings settings = {
         .width = widthT.u.int64,
         .height = heightT.u.int64,
         .fov = fovT.u.fp64,
         .fullscreen = fullscreenT.u.boolean,
-        .aaEnabled = aaT.u.boolean
+        .aaEnabled = aaT.u.boolean,
+        .maxDepth = maxDepthT.u.int64
     };
 
     memcpy(settings.fovLimits, fovLimits, sizeof(fovLimits));
@@ -253,6 +255,37 @@ void CreateBVH(Scene *scene) {
     printf("BVH creation time: %fms\n", totalTime);
 }
 
+Shader InjectShaderData(const char *filename, Scene scene) {
+    FILE *fptr;
+    fopen_s(&fptr, filename, "r");
+
+    if (fptr == NULL) {
+        char errMsg[256];
+        sprintf(errMsg, "Unable to open file [%s]", filename);
+
+        error(errMsg);
+    }
+
+    // Get file size
+    fseek(fptr, 0, SEEK_END);
+    const size_t fileSize = ftell(fptr);
+    fseek(fptr, 0, SEEK_SET);
+
+    char shaderBuffer[fileSize];
+    fread(shaderBuffer, sizeof(char), fileSize, fptr);
+
+    char maxObj[16];
+    sprintf(maxObj, "%lld", scene.objCount);
+    char *temp1 = ReplaceSubstr(shaderBuffer, "${MAX_OBJ}", maxObj);
+
+    char bvhStack[16];
+    sprintf(bvhStack, "%d", scene.nodeCount);
+    char *temp2 = ReplaceSubstr(temp1, "${MAX_BVH}", bvhStack);
+
+    Shader shader = LoadShaderFromMemory(0, temp2);
+    return shader;
+}
+
 int main(int argc, char *argv[]) {
     RenderSettings settings = ParseRendererConfig("./configs/renderer.toml");
 
@@ -289,7 +322,7 @@ int main(int argc, char *argv[]) {
     Texture2D data = CreateSceneData(scene.objects, scene.objCount);
     Texture2D bvhData = CreateBVHData(scene.nodes, scene.nodeCount);
 
-    Shader raytracing = LoadShader(0, "src/shaders/raytracing.frag");
+    Shader raytracing = InjectShaderData("src/shaders/raytracing.frag", scene);
     Shader denoiser = LoadShader(0, "src/shaders/denoise.frag");
 
     DenoiserShaderLocations denoiserLocs = GetDenoiserLocations(denoiser);
@@ -336,7 +369,8 @@ int main(int argc, char *argv[]) {
             .forward = vectors.forward,
             .right = vectors.right,
             .up = vectors.up,
-            .antiAliasing = settings.aaEnabled
+            .antiAliasing = settings.aaEnabled,
+            .maxDepth = settings.maxDepth
         };
 
         if (changed == 1) {

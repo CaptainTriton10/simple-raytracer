@@ -413,6 +413,7 @@ RaytracerShaderLocations GetRaytracerLocations(Shader shader) {
         .right = GetShaderLocation(shader, "right"),
         .up = GetShaderLocation(shader, "up"),
         .antiAliasing = GetShaderLocation(shader, "aaEnabled"),
+        .maxDepth = GetShaderLocation(shader, "maxDepth"),
         .dataSize = GetShaderLocation(shader, "dataSize")
     };
 
@@ -435,6 +436,7 @@ void SetRaytracerValues(Shader shader, RaytracerShaderLocations locs, RaytracerS
     SetShaderValue(shader, locs.up, values.up, SHADER_UNIFORM_VEC3);
 
     SetShaderValue(shader, locs.antiAliasing, &values.antiAliasing, SHADER_UNIFORM_INT);
+    SetShaderValue(shader, locs.maxDepth, &values.maxDepth, SHADER_UNIFORM_INT);
 }
 
 DenoiserShaderLocations GetDenoiserLocations(Shader shader) {
@@ -460,13 +462,6 @@ void NormaliseVec3(float *v) {
     memcpy(n, v, sizeof(float) * 3);
 
     float magnitude = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-
-    // if (magnitude == 0) {
-    //     float zero[3] = {0.0, 0.0, 0.0};
-    //     memcpy(v, zero, sizeof(zero));
-
-    //     return;
-    // }
 
     n[0] /= magnitude;
     n[1] /= magnitude;

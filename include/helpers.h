@@ -89,6 +89,7 @@ typedef struct RenderSettings {
     float fov;
     float cameraPosition[3];
     int aaEnabled;
+    unsigned int maxDepth;
 } RenderSettings;
 
 typedef struct RaytracerShaderValues {
@@ -101,6 +102,7 @@ typedef struct RaytracerShaderValues {
     float *right;
     float *up;
     int antiAliasing;
+    int maxDepth;
     int dataSize;
 } RaytracerShaderValues;
 
@@ -114,6 +116,7 @@ typedef struct RaytracerShaderLocations {
     int right;
     int up;
     int antiAliasing;
+    int maxDepth;
     int dataSize;
 } RaytracerShaderLocations;
 
@@ -138,6 +141,7 @@ typedef struct BasisVectors {
 } BasisVectors;
 
 void error(const char *msg);
+char *ReplaceSubstr(char *s, char *orig, char *s2);
 void SceneFree(Scene *scene);
 
 Hittable TranslateSphereData(Sphere s);
