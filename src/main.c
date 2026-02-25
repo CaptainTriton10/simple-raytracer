@@ -1,5 +1,6 @@
 #include "../include/helpers.h"
 #include "../include/bvh.h"
+#include "../include/textures.h"
 #include "raylib.h"
 #include "../include/tomlc17.h"
 #include <math.h>
@@ -287,6 +288,21 @@ Shader InjectShaderData(const char *filename, Scene scene) {
 }
 
 int main(int argc, char *argv[]) {
+    Image images[] = {
+        LoadImage("./textures/1.jpg"),
+        LoadImage("./textures/2.jpg"),
+        LoadImage("./textures/3.jpg")
+    };
+
+    AtlasBase atlasBase = {
+        .textures = images,
+        .atlasSize = 1024,
+        .chunkSize = 512,
+        .textureCount = 3
+    };
+
+    Image atlas = CreateAtlas(atlasBase);
+
     RenderSettings settings = ParseRendererConfig("./configs/renderer.toml");
 
     Scene scene;
@@ -322,7 +338,8 @@ int main(int argc, char *argv[]) {
     Texture2D data = CreateSceneData(scene.objects, scene.objCount);
     Texture2D bvhData = CreateBVHData(scene.nodes, scene.nodeCount);
 
-    Shader raytracing = InjectShaderData("src/shaders/raytracing.frag", scene);
+    // Shader raytracing = InjectShaderData("src/shaders/raytracing.frag", scene);
+    Shader raytracing = LoadShader(0, "src/shaders/raytracing.frag");
     Shader denoiser = LoadShader(0, "src/shaders/denoise.frag");
 
     DenoiserShaderLocations denoiserLocs = GetDenoiserLocations(denoiser);
@@ -332,8 +349,7 @@ int main(int argc, char *argv[]) {
     RenderTexture accA = LoadRenderTexture(screenWidth, screenHeight);
     RenderTexture accB = LoadRenderTexture(screenWidth, screenHeight);
 
-    Image uvImg = LoadImage("uv.jpg");
-    Texture2D uvTex = LoadTextureFromImage(uvImg);
+    Texture2D atlasTexture = LoadTextureFromImage(atlas);
 
     bool useA = true;
 
@@ -370,7 +386,8 @@ int main(int argc, char *argv[]) {
             .right = vectors.right,
             .up = vectors.up,
             .antiAliasing = settings.aaEnabled,
-            .maxDepth = settings.maxDepth
+            .maxDepth = settings.maxDepth,
+            .chunkSize = 512
         };
 
         if (changed == 1) {
@@ -385,14 +402,14 @@ int main(int argc, char *argv[]) {
 
         int dataLoc = GetShaderLocation(raytracing, "data");
         int bvhDataLoc = GetShaderLocation(raytracing, "bvhData");
-        int uvTexLoc = GetShaderLocation(raytracing, "uvTex");
+        int atlasLoc = GetShaderLocation(raytracing, "textureAtlas");
 
         BeginTextureMode(prevFrame);
             ClearBackground(BLACK);
             BeginShaderMode(raytracing);
                 SetShaderValueTexture(raytracing, dataLoc, data);   // The data must be loaded here
                 SetShaderValueTexture(raytracing, bvhDataLoc, bvhData);
-                SetShaderValueTexture(raytracing, uvTexLoc, uvTex);
+                SetShaderValueTexture(raytracing, atlasLoc, atlasTexture);
                 DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), WHITE);
             EndShaderMode();
         EndTextureMode();

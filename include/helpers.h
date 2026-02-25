@@ -41,6 +41,7 @@ typedef struct BVHNode {
 typedef struct ShaderMaterial {
     int type;
     float albedo[3];
+    int texture;
     float emission[3];
     float roughness;
     float ior;
@@ -104,6 +105,7 @@ typedef struct RaytracerShaderValues {
     int antiAliasing;
     int maxDepth;
     int dataSize;
+    int chunkSize;
 } RaytracerShaderValues;
 
 typedef struct RaytracerShaderLocations {
@@ -118,6 +120,7 @@ typedef struct RaytracerShaderLocations {
     int antiAliasing;
     int maxDepth;
     int dataSize;
+    int chunkSize;
 } RaytracerShaderLocations;
 
 typedef struct DenoiserShaderValues {

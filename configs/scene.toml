@@ -21,13 +21,13 @@ material = "mat_glass"
 type = "cube"
 a = [-0.5, -0.5, -0.5]
 b = [0.5, 0.5, 0.5]
-material = "mat_diffuse"
+material = "mat_diffuse1"
 
 [metal_ball]
 type = "sphere"
 position = [-1.2, 0.0, 0.0]
 radius = 0.5
-material = "mat_metal"
+material = "mat_diffuse2"
 
 # -----------------
 # Materials
@@ -46,6 +46,12 @@ type = "metal"
 albedo = [0.8, 0.6, 0.2]
 roughness = 0.0
 
-[mat_diffuse]
+[mat_diffuse1]
 type = "diffuse"
 albedo = [0.7, 0.3, 0.3]
+texture = 2
+
+[mat_diffuse2]
+type = "diffuse"
+albedo = [0.7, 0.3, 0.3]
+texture = 0

@@ -62,6 +62,7 @@ Hittable TranslateSphereData(Sphere s) {
 
     h.data[3].x = s.material.roughness;
     h.data[3].y = s.material.ior;
+    h.data[3].z = s.material.texture;
 
     h.data[4].x = s.material.emission[0];
     h.data[4].y = s.material.emission[1];
@@ -76,6 +77,7 @@ Sphere HittableToSphere(Hittable h) {
 
     ShaderMaterial mat = {
         .type = h.data[2].x,
+        .texture = h.data[3].z,
         .roughness = h.data[3].z,
         .ior = h.data[3].y
     };
@@ -125,6 +127,7 @@ Hittable TranslateQuadData(Quad q) {
     h.data[4].x = q.material.emission[0];
     h.data[4].y = q.material.emission[1];
     h.data[4].z = q.material.emission[2];
+    h.data[4].w = q.material.texture;
 
     return h;
 }
@@ -135,6 +138,7 @@ Quad HittableToQuad(Hittable h) {
 
     ShaderMaterial mat = {
         .type = h.data[3].x,
+        .texture = h.data[4].w,
         .ior = h.data[1].w,
         .roughness = h.data[2].w
     };
@@ -233,11 +237,21 @@ ShaderMaterial GetConfigMaterial(toml_result_t table, char *name) {
 
     float roughness = 0.0f;
     float ior = 0.0f;
+    int texture = 0;
 
     if (strcmp(TextToUpper(typeS), "DIFFUSE") == 0) {
         type = LAMBERTIAN;
 
         GetConfigVec3(table, albedo, name, "albedo");
+
+        char textureKey[64];
+        sprintf(textureKey, "%s.texture", name);
+
+        bool isTextured = toml_seek(table.toptab, textureKey).type == TOML_INT64;
+        if (isTextured) {
+            toml_datum_t textureT = GetConfigParam(table, name, "texture", TOML_INT64);
+            texture = textureT.u.int64;
+        }
 
     } else if (strcmp(TextToUpper(typeS), "METAL") == 0) {
         type = METAL;
@@ -268,6 +282,7 @@ ShaderMaterial GetConfigMaterial(toml_result_t table, char *name) {
 
     ShaderMaterial material = {
         .type = type,
+        .texture = texture,
         .roughness = roughness,
         .ior = ior
     };
@@ -441,7 +456,8 @@ RaytracerShaderLocations GetRaytracerLocations(Shader shader) {
         .up = GetShaderLocation(shader, "up"),
         .antiAliasing = GetShaderLocation(shader, "aaEnabled"),
         .maxDepth = GetShaderLocation(shader, "maxDepth"),
-        .dataSize = GetShaderLocation(shader, "dataSize")
+        .dataSize = GetShaderLocation(shader, "dataSize"),
+        .chunkSize = GetShaderLocation(shader, "chunkSize")
     };
 
     return locs;
@@ -464,6 +480,7 @@ void SetRaytracerValues(Shader shader, RaytracerShaderLocations locs, RaytracerS
 
     SetShaderValue(shader, locs.antiAliasing, &values.antiAliasing, SHADER_UNIFORM_INT);
     SetShaderValue(shader, locs.maxDepth, &values.maxDepth, SHADER_UNIFORM_INT);
+    SetShaderValue(shader, locs.chunkSize, &values.chunkSize, SHADER_UNIFORM_INT);
 }
 
 DenoiserShaderLocations GetDenoiserLocations(Shader shader) {

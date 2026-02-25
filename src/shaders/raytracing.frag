@@ -10,8 +10,8 @@
 #define DIELECTRIC 2
 #define EMISSIVE 3
 
-#define MAX_OBJECTS ${MAX_OBJ}
-#define MAX_BVH_STACK ${MAX_BVH}
+#define MAX_OBJECTS 10
+#define MAX_BVH_STACK 10
 
 #define POS_INFINITY 100000000
 #define PI 3.1415926
@@ -25,7 +25,8 @@ uniform int dataSize;
 
 uniform sampler2D bvhData;
 
-uniform sampler2D uvTex;
+uniform sampler2D textureAtlas;
+uniform int chunkSize;
 
 uniform float fov;
 uniform vec3 cameraCenter;
@@ -42,6 +43,7 @@ uniform int maxDepth;
 struct Material {
     int type;
     vec3 albedo;
+    int texture;
     vec3 emission;
     float roughness;
     float ior;
@@ -253,15 +255,23 @@ vec3 CheckerTexture(vec2 uv, vec3 p, float scale, vec3 even, vec3 odd) {
     return isEven ? even : odd;
 }
 
-vec3 ImageTextureValue(sampler2D tex, vec2 uv, vec3 p) {
+vec3 SampleAtlas(int index, vec2 uv, vec3 p) {
     float u = IntervalClamp(Interval(0.0, 1.0), uv.x);
     float v = 1.0 - IntervalClamp(Interval(0.0, 1.0), uv.y);
 
-    vec2 size = textureSize(tex, 0);
-    int i = int(u * size.x);
-    int j = int(v * size.y);
+    vec2 size = textureSize(textureAtlas, 0);
+    int divisions = int(size.x) / chunkSize;
 
-    vec3 pixel = texelFetch(tex, ivec2(i, j), 0).rgb;
+    int tileX = index % divisions;
+    int tileY = index / divisions;
+
+    int baseX = tileX * chunkSize;
+    int baseY = tileY * chunkSize;
+
+    int i = int(u * (chunkSize - 1)) + baseX;
+    int j = int(v * (chunkSize - 1)) + baseY;
+
+    vec3 pixel = texelFetch(textureAtlas, ivec2(i, j), 0).rgb;
 
     return pixel;
 }
@@ -275,7 +285,7 @@ bool LambertianScatter(Material mat, Ray ray, HitRecord rec, inout vec3 attenuat
 
     scattered = Ray(rec.pos, scatterDirection);
 
-    attenuation = mat.albedo;
+    attenuation = SampleAtlas(rec.material.texture, rec.uv, rec.pos);
 
     return true;
 }
@@ -427,6 +437,7 @@ bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
         Material mat = Material(
                 int(object.data2.x), // Material type
                 object.data2.yzw, // Albedo
+                int(object.data3.z),
                 object.data4.xyz, // Emission
                 object.data3.x, // Roughness
                 object.data3.y // IOR
@@ -439,6 +450,7 @@ bool HitHittable(Hittable object, Ray ray, Interval rayT, out HitRecord rec) {
         Material mat = Material(
                 int(object.data3.x),
                 object.data3.yzw,
+                int(object.data4.w),
                 object.data4.xyz,
                 object.data2.w,
                 object.data1.w
