@@ -303,8 +303,8 @@ Shader InjectShaderData(const char *filename, Scene scene) {
 int main(int argc, char *argv[]) {
     RenderSettings settings = ParseRendererConfig("./configs/renderer.toml");
 
-    AtlasBase atlasBase = GetTextures(settings.texturesPath, settings.atlasChunkSize);
-    Image atlas = CreateAtlas(atlasBase);
+    Atlas atlas = GetTextures(settings.texturesPath, settings.atlasChunkSize);
+    Image atlasImage = CreateAtlas(atlas);
 
     Scene scene;
 
@@ -350,7 +350,7 @@ int main(int argc, char *argv[]) {
     RenderTexture accA = LoadRenderTexture(screenWidth, screenHeight);
     RenderTexture accB = LoadRenderTexture(screenWidth, screenHeight);
 
-    Texture2D atlasTexture = LoadTextureFromImage(atlas);
+    Texture2D atlasTexture = LoadTextureFromImage(atlasImage);
 
     bool useA = true;
 

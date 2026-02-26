@@ -11,14 +11,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct AtlasBase {
+#define DEBUG_ATLAS 1
+
+typedef struct Atlas {
     Image *textures;
+    char *filepaths;
     size_t textureCount;
     size_t atlasSize;
     size_t chunkSize;
-} AtlasBase;
+} Atlas;
 
-Image CreateAtlas(AtlasBase atlas) {
+Image CreateAtlas(Atlas atlas) {
     if (atlas.atlasSize % atlas.chunkSize != 0) {
         char errMsg[128];
         sprintf(
@@ -30,7 +33,6 @@ Image CreateAtlas(AtlasBase atlas) {
     }
 
     Image *scaledTextures = malloc(atlas.textureCount * sizeof(Image));
-
     for (int i = 0; i < atlas.textureCount; i++) {
         scaledTextures[i] = ImageCopy(atlas.textures[i]);
         ImageResize(&scaledTextures[i], atlas.chunkSize, atlas.chunkSize);
@@ -57,13 +59,17 @@ Image CreateAtlas(AtlasBase atlas) {
         );
     }
 
+    if (DEBUG_ATLAS) {
+        ExportImage(output, "atlas_debug.png");
+    }
+
     printf("Created atlas. \n");
     free(scaledTextures);
 
     return output;
 }
 
-AtlasBase GetTextures(const char *texturesPath, size_t chunkSize) {
+Atlas GetTextures(const char *texturesPath, size_t chunkSize) {
     FilePathList list = LoadDirectoryFiles(texturesPath);
     Image *textures = malloc(list.count * sizeof(Image));
 
@@ -84,7 +90,7 @@ AtlasBase GetTextures(const char *texturesPath, size_t chunkSize) {
         i++;
     }
 
-    AtlasBase atlas = {
+    Atlas atlas = {
         .chunkSize = chunkSize,
         .atlasSize = atlasDivisions * chunkSize,
         .textureCount = list.count,
