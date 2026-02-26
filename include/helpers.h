@@ -6,6 +6,7 @@
 #include <stddef.h>
 
 #define DATA_WIDTH 5
+#define MAX_LOOP_DEPTH 128
 
 #define NONE -1
 #define BVH_NODE 0
@@ -91,6 +92,8 @@ typedef struct RenderSettings {
     float cameraPosition[3];
     int aaEnabled;
     unsigned int maxDepth;
+    char *texturesPath;
+    int atlasChunkSize;
 } RenderSettings;
 
 typedef struct RaytracerShaderValues {

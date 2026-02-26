@@ -10,8 +10,8 @@
 #define DIELECTRIC 2
 #define EMISSIVE 3
 
-#define MAX_OBJECTS 10
-#define MAX_BVH_STACK 10
+#define MAX_OBJECTS 20
+#define MAX_BVH_STACK 20
 
 #define POS_INFINITY 100000000
 #define PI 3.1415926
@@ -285,7 +285,11 @@ bool LambertianScatter(Material mat, Ray ray, HitRecord rec, inout vec3 attenuat
 
     scattered = Ray(rec.pos, scatterDirection);
 
-    attenuation = SampleAtlas(rec.material.texture, rec.uv, rec.pos);
+    if (rec.material.texture == -1) {
+        attenuation = rec.material.albedo;
+    } else {
+        attenuation = SampleAtlas(rec.material.texture, rec.uv, rec.pos);
+    }
 
     return true;
 }

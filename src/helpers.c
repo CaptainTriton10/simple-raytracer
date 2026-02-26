@@ -251,6 +251,9 @@ ShaderMaterial GetConfigMaterial(toml_result_t table, char *name) {
         if (isTextured) {
             toml_datum_t textureT = GetConfigParam(table, name, "texture", TOML_INT64);
             texture = textureT.u.int64;
+        } else {
+            texture = -1;   // No texture
+            printf("No texture for %s", name);
         }
 
     } else if (strcmp(TextToUpper(typeS), "METAL") == 0) {

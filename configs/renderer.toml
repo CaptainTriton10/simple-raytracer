@@ -9,3 +9,6 @@ camera_position = [-1.0, 1.0, 3.0]
 
 anti_aliasing = false
 max_depth = 5
+
+textures_path = "./textures"
+atlas_chunk_size = 16

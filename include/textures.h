@@ -5,6 +5,7 @@
 #include "raylib.h"
 #include <iso646.h>
 #include <math.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,8 +17,6 @@ typedef struct AtlasBase {
     size_t atlasSize;
     size_t chunkSize;
 } AtlasBase;
-
-
 
 Image CreateAtlas(AtlasBase atlas) {
     if (atlas.atlasSize % atlas.chunkSize != 0) {
@@ -58,12 +57,43 @@ Image CreateAtlas(AtlasBase atlas) {
         );
     }
 
-    ExportImage(output, "atlas.jpg");
-
     printf("Created atlas. \n");
     free(scaledTextures);
 
     return output;
+}
+
+AtlasBase GetTextures(const char *texturesPath, size_t chunkSize) {
+    FilePathList list = LoadDirectoryFiles(texturesPath);
+    Image *textures = malloc(list.count * sizeof(Image));
+
+    for (int i = 0; i < list.count; i++) {
+        textures[i] = LoadImage(list.paths[i]);
+    }
+
+    int atlasDivisions;
+
+    int i = 1;
+    bool shouldBreak = false;
+    while (!shouldBreak || i > MAX_LOOP_DEPTH) {
+        if (i * i >= list.count) {
+            atlasDivisions = i;
+            shouldBreak = true;
+        }
+
+        i++;
+    }
+
+    AtlasBase atlas = {
+        .chunkSize = chunkSize,
+        .atlasSize = atlasDivisions * chunkSize,
+        .textureCount = list.count,
+        .textures = textures
+    };
+
+    free(textures);
+
+    return atlas;
 }
 
 #endif

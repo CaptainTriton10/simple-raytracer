@@ -129,17 +129,22 @@ RenderSettings ParseRendererConfig(const char *filename) {
         error(errMsg);
     }
 
+    RenderSettings settings;
+
     toml_datum_t widthT = GetConfigParam(result, (char*)headerName, "width", TOML_INT64);
     if (widthT.u.int64 <= 0) {
         error("Width cannot be negative or 0.");
     }
+    settings.width = widthT.u.int64;
 
     toml_datum_t heightT = GetConfigParam(result, (char*)headerName, "height", TOML_INT64);
     if (heightT.u.int64 <= 0) {
         error("Height cannot be negative or 0.");
     }
+    settings.height = heightT.u.int64;
 
     toml_datum_t fullscreenT = GetConfigParam(result, (char*)headerName, "fullscreen", TOML_BOOLEAN);
+    settings.fullscreen = fullscreenT.u.boolean;
 
     float fovLimits[2];
     GetConfigVec2(result, fovLimits, (char*)headerName, "fov_limits");
@@ -152,21 +157,29 @@ RenderSettings ParseRendererConfig(const char *filename) {
 
 
     toml_datum_t fovT = GetConfigParam(result, (char*)headerName, "fov", TOML_FP64);
+    settings.fov = fovT.u.fp64;
 
     float camPos[3];
     GetConfigVec3(result, camPos, (char*)headerName, "camera_position");
 
     toml_datum_t aaT = GetConfigParam(result, (char*)headerName, "anti_aliasing", TOML_BOOLEAN);
+    settings.aaEnabled = aaT.u.boolean;
     toml_datum_t maxDepthT = GetConfigParam(result, (char*)headerName, "max_depth", TOML_INT64);
+    settings.maxDepth = maxDepthT.u.boolean;
 
-    RenderSettings settings = {
-        .width = widthT.u.int64,
-        .height = heightT.u.int64,
-        .fov = fovT.u.fp64,
-        .fullscreen = fullscreenT.u.boolean,
-        .aaEnabled = aaT.u.boolean,
-        .maxDepth = maxDepthT.u.int64
-    };
+    toml_datum_t texturesPathT = GetConfigParam(result, (char*)headerName, "textures_path", TOML_STRING);
+
+    char key[128];
+    sprintf(key, "%s.atlas_chunk_size", headerName);
+
+    toml_datum_t atlasChunkSizeT = toml_seek(result.toptab, key);
+    if (atlasChunkSizeT.type != TOML_INT64) {
+        settings.atlasChunkSize = 512;
+    } else {
+        settings.atlasChunkSize = atlasChunkSizeT.u.int64;
+    }
+
+    settings.texturesPath = _strdup(texturesPathT.u.s);
 
     memcpy(settings.fovLimits, fovLimits, sizeof(fovLimits));
     memcpy(settings.cameraPosition, camPos, sizeof(camPos));
@@ -288,22 +301,10 @@ Shader InjectShaderData(const char *filename, Scene scene) {
 }
 
 int main(int argc, char *argv[]) {
-    Image images[] = {
-        LoadImage("./textures/1.jpg"),
-        LoadImage("./textures/2.jpg"),
-        LoadImage("./textures/3.jpg")
-    };
-
-    AtlasBase atlasBase = {
-        .textures = images,
-        .atlasSize = 1024,
-        .chunkSize = 512,
-        .textureCount = 3
-    };
-
-    Image atlas = CreateAtlas(atlasBase);
-
     RenderSettings settings = ParseRendererConfig("./configs/renderer.toml");
+
+    AtlasBase atlasBase = GetTextures(settings.texturesPath, settings.atlasChunkSize);
+    Image atlas = CreateAtlas(atlasBase);
 
     Scene scene;
 
@@ -387,7 +388,7 @@ int main(int argc, char *argv[]) {
             .up = vectors.up,
             .antiAliasing = settings.aaEnabled,
             .maxDepth = settings.maxDepth,
-            .chunkSize = 512
+            .chunkSize = settings.atlasChunkSize
         };
 
         if (changed == 1) {
@@ -464,11 +465,11 @@ int main(int argc, char *argv[]) {
 
         frame++;
         double totalTime = GetTime() - startTime1;
-        printf("Total frame time: %fms [%.1ffps]\n\n", totalTime * 1000, 1.0f / totalTime);
+        // printf("Total frame time: %fms [%.1ffps]\n\n", totalTime * 1000, 1.0f / totalTime);
     }
 
     CloseWindow();
     SceneFree(&scene);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
