@@ -187,7 +187,7 @@ RenderSettings ParseRendererConfig(const char *filename) {
     return settings;
 }
 
-Scene ParseSceneConfig(const char *filename) {
+Scene ParseSceneConfig(const char *filename, Atlas atlas) {
     toml_result_t result = toml_parse_file_ex(filename);
 
     if (!result.ok) {
@@ -211,7 +211,7 @@ Scene ParseSceneConfig(const char *filename) {
             objNames[i] = _strdup(objectsT.u.arr.elem[i].u.s);
 
             Hittable objBuf[6];
-            size_t objSize = GetConfigObject(objBuf, result, objNames[i]);
+            size_t objSize = GetConfigObject(objBuf, result, objNames[i], atlas);
 
             Hittable *newPtr = realloc(objects, sizeof(Hittable) * (objectsSize + objSize));
             if (!newPtr) {
@@ -309,9 +309,9 @@ int main(int argc, char *argv[]) {
     Scene scene;
 
     if (argc == 1) {
-        scene = ParseSceneConfig("./configs/scene.toml");
+        scene = ParseSceneConfig("./configs/scene.toml", atlas);
     } else if (argc == 2) {
-        scene = ParseSceneConfig(argv[1]);
+        scene = ParseSceneConfig(argv[1], atlas);
     } else {
         fprintf(stderr, "Incorrect number of arguments (%d).", argc);
         exit(1);

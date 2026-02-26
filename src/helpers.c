@@ -1,5 +1,6 @@
 #include "../include/helpers.h"
 #include "../include/tomlc17.h"
+#include "../include/textures.h"
 #include "raylib.h"
 #include "raymath.h"
 #include <stddef.h>
@@ -227,7 +228,7 @@ void GetConfigVec2(toml_result_t table, float *vec, char *section, char *item) {
     memcpy(vec, result, sizeof(result));    // Move result to input float array
 }
 
-ShaderMaterial GetConfigMaterial(toml_result_t table, char *name) {
+ShaderMaterial GetConfigMaterial(toml_result_t table, char *name, Atlas atlas) {
     toml_datum_t typeT = GetConfigParam(table, name, "type", TOML_STRING);
     char *typeS = _strdup(typeT.u.s);
     int type = 0;
@@ -249,8 +250,12 @@ ShaderMaterial GetConfigMaterial(toml_result_t table, char *name) {
 
         bool isTextured = toml_seek(table.toptab, textureKey).type == TOML_INT64;
         if (isTextured) {
-            toml_datum_t textureT = GetConfigParam(table, name, "texture", TOML_INT64);
-            texture = textureT.u.int64;
+            toml_datum_t textureT = GetConfigParam(table, name, "texture", TOML_STRING);
+            const char *textureS = _strdup(textureT.u.s);
+
+            int index = GetTextureIndex(atlas, textureS);
+
+            texture = index == -1 ? 0 : index;
         } else {
             texture = -1;   // No texture
             printf("No texture for %s", name);
@@ -358,7 +363,7 @@ void CubeToQuads(Quad *quads, Cube cube) {
     };
 }
 
-size_t GetConfigObject(Hittable *objects, toml_result_t table, char *name) {
+size_t GetConfigObject(Hittable *objects, toml_result_t table, char *name, Atlas atlas) {
     toml_datum_t objType = GetConfigParam(table, name, "type", TOML_STRING);
 
     if (strcmp(objType.u.s, "sphere") == 0) {
@@ -371,7 +376,7 @@ size_t GetConfigObject(Hittable *objects, toml_result_t table, char *name) {
         toml_datum_t radiusT = GetConfigParam(table, name, "radius", TOML_FP64);
 
         toml_datum_t materialT = GetConfigParam(table, name, "material", TOML_STRING);
-        ShaderMaterial mat = GetConfigMaterial(table, (char*)materialT.u.s);
+        ShaderMaterial mat = GetConfigMaterial(table, (char*)materialT.u.s, atlas);
 
         Sphere sphere = {
             .pos = position,
@@ -397,7 +402,7 @@ size_t GetConfigObject(Hittable *objects, toml_result_t table, char *name) {
         Vector3 v = {v3[0], v3[1], v3[2]};
 
         toml_datum_t materialT = GetConfigParam(table, name, "material", TOML_STRING);
-        ShaderMaterial mat = GetConfigMaterial(table, (char*)materialT.u.s);
+        ShaderMaterial mat = GetConfigMaterial(table, (char*)materialT.u.s, atlas);
 
         Quad quad = {
             .material = mat,
@@ -410,7 +415,7 @@ size_t GetConfigObject(Hittable *objects, toml_result_t table, char *name) {
         return 1;
     } else if (strcmp(objType.u.s, "cube") == 0) {
         toml_datum_t materialT = GetConfigParam(table, name, "material", TOML_STRING);
-        ShaderMaterial mat = GetConfigMaterial(table, (char*)materialT.u.s);
+        ShaderMaterial mat = GetConfigMaterial(table, (char*)materialT.u.s, atlas);
 
         float a[3];
         GetConfigVec3(table, a, name, "a");

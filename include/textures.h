@@ -1,7 +1,6 @@
 #ifndef TEXTURES_H
 #define TEXTURES_H
 
-#include "helpers.h"
 #include "raylib.h"
 #include <iso646.h>
 #include <math.h>
@@ -60,7 +59,7 @@ Image CreateAtlas(Atlas atlas) {
     }
 
     if (DEBUG_ATLAS) {
-        ExportImage(output, "atlas_debug.png");
+        ExportImage(output, "atlas_debug.jpg");
     }
 
     printf("Created atlas. \n");
@@ -70,11 +69,14 @@ Image CreateAtlas(Atlas atlas) {
 }
 
 Atlas GetTextures(const char *texturesPath, size_t chunkSize) {
-    FilePathList list = LoadDirectoryFiles(texturesPath);
+    const FilePathList list = LoadDirectoryFiles(texturesPath);
     Image *textures = malloc(list.count * sizeof(Image));
 
+    Atlas atlas;
+
     for (int i = 0; i < list.count; i++) {
-        textures[i] = LoadImage(list.paths[i]);
+        atlas.textures[i] = LoadImage(list.paths[i]);
+        strcpy(&atlas.filepaths[i], list.paths[i]);
     }
 
     int atlasDivisions;
@@ -90,16 +92,25 @@ Atlas GetTextures(const char *texturesPath, size_t chunkSize) {
         i++;
     }
 
-    Atlas atlas = {
+    atlas = (Atlas){
         .chunkSize = chunkSize,
         .atlasSize = atlasDivisions * chunkSize,
-        .textureCount = list.count,
-        .textures = textures
+        .textureCount = list.count
     };
 
     free(textures);
 
     return atlas;
+}
+
+int GetTextureIndex(Atlas atlas, const char *name) {
+    for (int i = 0; i < atlas.textureCount; i++) {
+        if (strcmp(&atlas.filepaths[i], name) == 0) {
+            return i;
+        }
+    }
+
+    return -1;
 }
 
 #endif
