@@ -97,7 +97,7 @@ ShaderMaterial GetConfigMaterial(toml_result_t table, char *name, Atlas atlas) {
 
             int index = GetTextureIndex(atlas, textureS);
 
-            texture = index == -1 ? 0 : index;
+            texture = index == -1 ? -1 : index;
         } else {
             texture = -1;   // No texture
             printf("No texture for %s\n", name);

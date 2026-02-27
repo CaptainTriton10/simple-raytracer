@@ -59,7 +59,7 @@ Atlas GetTextures(const char *texturesPath, size_t chunkSize) {
     const FilePathList list = LoadDirectoryFiles(texturesPath);
 
     Image *textures = malloc(list.count * sizeof(Image));
-    char *filepaths[list.count];
+    char **filepaths = malloc(list.count * MAX_TEXTURE_PATH);
 
     for (int i = 0; i < list.count; i++) {
         filepaths[i] = malloc(MAX_TEXTURE_PATH);

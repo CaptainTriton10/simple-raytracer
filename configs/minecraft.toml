@@ -47,14 +47,14 @@ albedo = [0.4, 0.45, 0.6]
 [mat_stone]
 type = "DIFFUSE"
 albedo = [0.0, 0.0, 0.0]
-texture = 2
+texture = "./textures\\stone.png"
 
 [mat_netherrack]
 type = "DIFFUSE"
 albedo = [0.0, 0.0, 0.0]
-texture = 0
+texture = "./textures\\netherrack.png"
 
 [mat_wood]
 type = "DIFFUSE"
 albedo = [0.0, 0.0, 0.0]
-texture = 1
+texture = "./textures\\oak_planks.png"
