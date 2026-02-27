@@ -1,56 +1,7 @@
-#ifndef BVH_H
-#define BVH_H
-
-#include "raylib.h"
-#include "raymath.h"
-#include "helpers.h"
-#include <stddef.h>
+#include "bvh.h"
+#include <raymath.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-float IntervalClamp(Interval i, float x) {
-    if (x < i.min) return i.min;
-    if (x > i.max) return i.max;
-
-    return x;
-}
-
-Interval IntervalExpand(Interval i, float delta) {
-    float padding = delta / 2.0f;
-
-    return (Interval) {i.min - padding, i.max + padding};
-}
-
-void PadToMinimums(AABB *aabb) {
-    float delta = 0.0001;
-
-    float xSize = aabb->x.max - aabb->x.min;
-    float ySize = aabb->y.max - aabb->y.min;
-    float zSize = aabb->z.max - aabb->z.min;
-
-    if (xSize < delta) aabb->x = IntervalExpand(aabb->x, delta);
-    if (ySize < delta) aabb->y = IntervalExpand(aabb->y, delta);
-    if (zSize < delta) aabb->z = IntervalExpand(aabb->z, delta);
-}
-
-void InitInterval(Interval *i, Interval a, Interval b) {
-    i->min = a.min <= b.min ? a.min : b.min;
-    i->max = a.max >= b.max ? a.max : b.max;
-}
-
-void InitAABB(AABB *aabb, Vector3 a, Vector3 b) {
-    aabb->x = (a.x <= b.x) ? (Interval) {a.x, b.x} : (Interval) {b.x, a.x};
-    aabb->y = (a.y <= b.y) ? (Interval) {a.y, b.y} : (Interval) {b.y, a.y};
-    aabb->z = (a.z <= b.z) ? (Interval) {a.z, b.z} : (Interval) {b.z, a.z};
-
-    PadToMinimums(aabb);
-}
-
-void InitAABB2(AABB *aabb, AABB box0, AABB box1) {
-    InitInterval(&aabb->x, box0.x, box1.x);
-    InitInterval(&aabb->y, box0.y, box1.y);
-    InitInterval(&aabb->z, box0.z, box1.z);
-}
 
 void CalculateSphereBBox(Sphere *s) {
     Vector3 rvec = {s->radius, s->radius, s->radius};
@@ -130,36 +81,36 @@ int BoxCompare(void *context, const void *a, const void *b) {
     return 0;
 }
 
-int InitBVHNode(Scene *scene, size_t start, size_t end) {
+int InitBVHNode(Scene *scene, size_t start, size_t end, BVHNode *nodes) {
     int nodeIndex = scene->nodeCount++;
-    BVHNode *node = &scene->nodes[nodeIndex];
+    BVHNode node;
 
     size_t objectSpan = end - start;
 
     AABB spanBox = ComputeSpanBBox(scene, start, end);
     int axis = LongestAxis(spanBox);
 
-    node->bbox = spanBox;
+    node.bbox = spanBox;
 
     if (objectSpan == 1) {
-        node->left = (HittableRef) {scene->objects[start].type, start};
-        node->right = (HittableRef) { NONE, -1};
+        node.left = (HittableRef) {scene->objects[start].type, start};
+        node.right = (HittableRef) { NONE, -1};
     } else if (objectSpan == 2) {
-        node->left = (HittableRef) {scene->objects[start].type, start};
-        node->right = (HittableRef) {scene->objects[start].type, start + 1};
+        node.left = (HittableRef) {scene->objects[start].type, start};
+        node.right = (HittableRef) {scene->objects[start].type, start + 1};
     } else {
         qsort_s(&scene->objects[start], objectSpan, sizeof(Hittable), BoxCompare, &axis);
 
         int mid = start + objectSpan / 2;
 
-        int leftNode = InitBVHNode(scene, start, mid);
-        int rightNode = InitBVHNode(scene, mid, end);
+        int leftNode = InitBVHNode(scene, start, mid, nodes);
+        int rightNode = InitBVHNode(scene, mid, end, nodes);
 
-        node->left = (HittableRef) {BVH_NODE, leftNode};
-        node->right = (HittableRef) {BVH_NODE, rightNode};
+        node.left = (HittableRef) {BVH_NODE, leftNode};
+        node.right = (HittableRef) {BVH_NODE, rightNode};
     }
+
+    nodes[nodeIndex] = node;
 
     return nodeIndex;
 }
-
-#endif

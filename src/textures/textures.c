@@ -1,24 +1,11 @@
-#ifndef TEXTURES_H
-#define TEXTURES_H
-
-#include "raylib.h"
+#include "textures.h"
+#include "../utils/utils.h"
 #include <iso646.h>
 #include <math.h>
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define DEBUG_ATLAS 1
-
-typedef struct Atlas {
-    Image *textures;
-    char *filepaths;
-    size_t textureCount;
-    size_t atlasSize;
-    size_t chunkSize;
-} Atlas;
 
 Image CreateAtlas(Atlas atlas) {
     if (atlas.atlasSize % atlas.chunkSize != 0) {
@@ -70,13 +57,19 @@ Image CreateAtlas(Atlas atlas) {
 
 Atlas GetTextures(const char *texturesPath, size_t chunkSize) {
     const FilePathList list = LoadDirectoryFiles(texturesPath);
+
     Image *textures = malloc(list.count * sizeof(Image));
+    char *filepaths[list.count];
+
+    for (int i = 0; i < list.count; i++) {
+        filepaths[i] = malloc(MAX_TEXTURE_PATH);
+        strcpy(filepaths[i], list.paths[i]);
+    }
 
     Atlas atlas;
 
     for (int i = 0; i < list.count; i++) {
-        atlas.textures[i] = LoadImage(list.paths[i]);
-        strcpy(&atlas.filepaths[i], list.paths[i]);
+        textures[i] = LoadImage(list.paths[i]);
     }
 
     int atlasDivisions;
@@ -95,22 +88,22 @@ Atlas GetTextures(const char *texturesPath, size_t chunkSize) {
     atlas = (Atlas){
         .chunkSize = chunkSize,
         .atlasSize = atlasDivisions * chunkSize,
-        .textureCount = list.count
+        .textureCount = list.count,
+        .textures = textures,
+        .filepaths = filepaths
     };
-
-    free(textures);
 
     return atlas;
 }
 
 int GetTextureIndex(Atlas atlas, const char *name) {
     for (int i = 0; i < atlas.textureCount; i++) {
-        if (strcmp(&atlas.filepaths[i], name) == 0) {
+        printf("%s vs %s\n", atlas.filepaths[i], name);
+        if (strcmp(atlas.filepaths[i], name) == 0) {
             return i;
         }
     }
 
+
     return -1;
 }
-
-#endif

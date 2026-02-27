@@ -1,8 +1,12 @@
-#include "../include/helpers.h"
-#include "../include/bvh.h"
-#include "../include/textures.h"
-#include "raylib.h"
+#include "objects/objects.h"
+#include "renderer/renderer.h"
+#include "bvh/bvh.h"
+#include "aabb/aabb.h"
+#include "configs/configs.h"
+#include "utils/utils.h"
+#include "controls/controls.h"
 #include "../include/tomlc17.h"
+#include <raylib.h>
 #include <math.h>
 #include <time.h>
 #include <stddef.h>
@@ -79,7 +83,7 @@ Texture2D CreateSceneData(Hittable objects[], size_t len) {
     return dataTexture;
 }
 
-Texture2D CreateBVHData(BVHNode nodes[], size_t nodeCount) {
+Texture2D CreateBVHData(BVHNode *nodes, size_t nodeCount) {
     size_t dataSize = nodeCount * BVH_DATA_WIDTH * 4;
     float *data = malloc(dataSize * sizeof(float));
 
@@ -253,16 +257,15 @@ Scene ParseSceneConfig(const char *filename, Atlas atlas) {
     return scene;
 }
 
-void CreateBVH(Scene *scene) {
+void CreateBVH(Scene *scene, BVHNode *nodes) {
     printf("Creating BVH...\n");
     double startTime = GetTime();
 
     ComputeWorldBBoxes(scene);
 
-    scene->nodes = malloc(sizeof(BVHNode) * (2 * scene->objCount));
     scene->nodeCount = 0;
 
-    int root = InitBVHNode(scene, 0, scene->objCount);
+    int root = InitBVHNode(scene, 0, scene->objCount, nodes);
 
     printf("BVH created: %d nodes\n", scene->nodeCount);
     double totalTime = (GetTime() - startTime) * 1000;
@@ -317,7 +320,8 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    CreateBVH(&scene);
+    BVHNode *bvhNodes = malloc(sizeof(BVHNode) * (2 * scene.objCount));
+    CreateBVH(&scene, bvhNodes);
 
     const int screenWidth = settings.width;
     const int screenHeight = settings.height;
@@ -337,7 +341,7 @@ int main(int argc, char *argv[]) {
     SetTargetFPS(1000);
 
     Texture2D data = CreateSceneData(scene.objects, scene.objCount);
-    Texture2D bvhData = CreateBVHData(scene.nodes, scene.nodeCount);
+    Texture2D bvhData = CreateBVHData(bvhNodes, scene.nodeCount);
 
     // Shader raytracing = InjectShaderData("src/shaders/raytracing.frag", scene);
     Shader raytracing = LoadShader(0, "src/shaders/raytracing.frag");
