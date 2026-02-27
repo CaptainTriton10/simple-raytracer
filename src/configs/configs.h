@@ -15,7 +15,7 @@ toml_datum_t GetConfigParam(toml_result_t table, char *section, char *item, toml
 void GetConfigVec3(toml_result_t table, float *vec, char *section, char *item);
 void GetConfigVec2(toml_result_t table, float *vec, char *section, char *item);
 
-ShaderMaterial GetConfigMaterial(toml_result_t table, char *name, Atlas atlas);
+static ShaderMaterial GetConfigMaterial(toml_result_t table, char *name, Atlas atlas);
 size_t GetConfigObject(Hittable *objects, toml_result_t table, char *name, Atlas atlas);
 
 #endif

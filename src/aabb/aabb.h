@@ -12,12 +12,12 @@ typedef struct AABB {
     Interval x, y, z;
 } AABB;
 
-float IntervalClamp(Interval i, float x);
-Interval IntervalExpand(Interval i, float delta);
+static float IntervalClamp(Interval i, float x);
+static Interval IntervalExpand(Interval i, float delta);
 
-void PadToMinimums(AABB *aabb);
+static void PadToMinimums(AABB *aabb);
 
-void InitInterval(Interval *i, Interval a, Interval b);
+static void InitInterval(Interval *i, Interval a, Interval b);
 void InitAABB(AABB *aabb, Vector3 a, Vector3 b);
 void InitAABB2(AABB *aabb, AABB box0, AABB box1);
 

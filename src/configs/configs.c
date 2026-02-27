@@ -70,7 +70,7 @@ void GetConfigVec2(toml_result_t table, float *vec, char *section, char *item) {
     memcpy(vec, result, sizeof(result));    // Move result to input float array
 }
 
-ShaderMaterial GetConfigMaterial(toml_result_t table, char *name, Atlas atlas) {
+static ShaderMaterial GetConfigMaterial(toml_result_t table, char *name, Atlas atlas) {
     toml_datum_t typeT = GetConfigParam(table, name, "type", TOML_STRING);
     char *typeS = _strdup(typeT.u.s);
     int type = 0;

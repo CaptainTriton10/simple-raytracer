@@ -17,16 +17,16 @@ typedef struct BVHNode {
     HittableRef right;
 } BVHNode;
 
-void CalculateSphereBBox(Sphere *s);
-void CalculateQuadBBox(Quad *quad);
+static void CalculateSphereBBox(Sphere *s);
+static void CalculateQuadBBox(Quad *quad);
 
-AABB ComputeSpanBBox(Scene *scene, int start, int end);
+static AABB ComputeSpanBBox(Scene *scene, int start, int end);
 void ComputeWorldBBoxes(Scene *scene);
 
-Interval AxisInterval(AABB aabb, int n);
-int LongestAxis(AABB aabb);
+static Interval AxisInterval(AABB aabb, int n);
+static int LongestAxis(AABB aabb);
 
-int BoxCompare(void *context, const void *a, const void *b);
+static int BoxCompare(void *context, const void *a, const void *b);
 
 int InitBVHNode(Scene *scene, size_t start, size_t end, BVHNode *nodes);
 

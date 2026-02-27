@@ -36,12 +36,6 @@ char *ReplaceSubstr(char *s, char *orig, char *s2) {
     return buf;
 }
 
-void SceneFree(Scene *scene) {
-    if (!scene) return;
-
-    free(scene->objects);
-}
-
 void NormaliseVec3(float *v) {
     float n[3];
     memcpy(n, v, sizeof(float) * 3);

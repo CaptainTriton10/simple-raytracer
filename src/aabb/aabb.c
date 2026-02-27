@@ -1,19 +1,19 @@
 #include "aabb.h"
 
-float IntervalClamp(Interval i, float x) {
+static float IntervalClamp(Interval i, float x) {
     if (x < i.min) return i.min;
     if (x > i.max) return i.max;
 
     return x;
 }
 
-Interval IntervalExpand(Interval i, float delta) {
+static Interval IntervalExpand(Interval i, float delta) {
     float padding = delta / 2.0f;
 
     return (Interval) {i.min - padding, i.max + padding};
 }
 
-void PadToMinimums(AABB *aabb) {
+static void PadToMinimums(AABB *aabb) {
     float delta = 0.0001;
 
     float xSize = aabb->x.max - aabb->x.min;
@@ -25,7 +25,7 @@ void PadToMinimums(AABB *aabb) {
     if (zSize < delta) aabb->z = IntervalExpand(aabb->z, delta);
 }
 
-void InitInterval(Interval *i, Interval a, Interval b) {
+static void InitInterval(Interval *i, Interval a, Interval b) {
     i->min = a.min <= b.min ? a.min : b.min;
     i->max = a.max >= b.max ? a.max : b.max;
 }

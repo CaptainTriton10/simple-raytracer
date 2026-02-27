@@ -2,6 +2,7 @@
 #include <math.h>
 #include <string.h>
 #include <raymath.h>
+#include <stdlib.h>
 
 Hittable TranslateSphereData(Sphere s) {
     Hittable h;
@@ -177,4 +178,10 @@ void CubeToQuads(Quad *quads, Cube cube) {
         .v = dz,
         .material = cube.material
     };
+}
+
+void SceneFree(Scene *scene) {
+    if (!scene) return;
+
+    free(scene->objects);
 }

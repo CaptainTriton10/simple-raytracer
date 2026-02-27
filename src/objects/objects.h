@@ -64,4 +64,6 @@ Quad HittableToQuad(Hittable h);
 
 void CubeToQuads(Quad *quads, Cube cube);
 
+void SceneFree(Scene *scene);
+
 #endif
