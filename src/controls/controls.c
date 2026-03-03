@@ -1,5 +1,6 @@
 #include "controls.h"
 #include "../utils/utils.h"
+#include "raylib.h"
 #include <stdio.h>
 #include <raymath.h>
 #include <string.h>
@@ -28,7 +29,6 @@ bool Movement(Camera *camera, BasisVectors vectors) {
         camera->position.z -= vectors.right[2] * move;
         changed = true;
     }
-
 
     if (IsKeyDown(KEY_D)) {
         camera->position.x += vectors.right[0] * move;
@@ -68,7 +68,7 @@ bool Zoom(Camera *camera, RenderSettings settings) {
     return false;
 }
 
-BasisVectors Look(float *yaw, float *pitch) {
+BasisVectors Look(float *yaw, float *pitch, bool isEnabled) {
     BasisVectors vectors;
     float worldUp[3] = {0.0, 1.0, 0.0};
 
@@ -76,8 +76,8 @@ BasisVectors Look(float *yaw, float *pitch) {
             GetMouseDelta().x * MOUSE_SENSETIVITY * GetFrameTime(),
             GetMouseDelta().y * MOUSE_SENSETIVITY * GetFrameTime()};
 
-    *yaw -= mouseDelta.x;
-    *pitch -= mouseDelta.y;
+    *yaw -= isEnabled ? 0.0f : mouseDelta.x;
+    *pitch -= isEnabled ? 0.0f : mouseDelta.y;
     *pitch = Clamp(*pitch, -85.0f * DEG2RAD, 85.0f * DEG2RAD);
 
     float forward[3] = {
@@ -104,11 +104,20 @@ BasisVectors Look(float *yaw, float *pitch) {
 
 bool Settings(RenderSettings *settings) {
     if (IsKeyPressed(KEY_ONE)) {
-        settings->aaEnabled = settings->aaEnabled == 1 ? 0 : 1;
+        // settings->aaEnabled = settings->aaEnabled == 1 ? 0 : 1;
         return true;
     }
 
     return false;
+}
+
+void ToggleCursor(bool *isEnabled) {
+    if (IsKeyPressed(KEY_LEFT_ALT)) {
+        if (*isEnabled) DisableCursor();
+        else EnableCursor();
+
+        *isEnabled = !*isEnabled;
+    }
 }
 
 void DrawInfo(Camera camera, RenderSettings settings, int frame, Vector2 cameraRotation) {

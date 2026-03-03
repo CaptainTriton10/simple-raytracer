@@ -5,8 +5,10 @@
 #include "configs/configs.h"
 #include "utils/utils.h"
 #include "controls/controls.h"
+#include "gui/gui.h"
 #include "../include/tomlc17.h"
 #include <raylib.h>
+#include <raymath.h>
 #include <math.h>
 #include <time.h>
 #include <stddef.h>
@@ -357,11 +359,33 @@ int main(int argc, char *argv[]) {
     Texture2D atlasTexture = LoadTextureFromImage(atlasImage);
 
     bool useA = true;
+    bool cursorEnabled = false;
+    DisableCursor();
+
+    GUI gui = {
+        .sidebar = {
+            .position = {
+                .v = {
+                    (ValueFloat){
+                        .value = 0.0,
+                        .textVal = "0.0",
+                        .editMode = false,
+                    }, (ValueFloat){
+                        .value = 1.0,
+                        .textVal = "1.0",
+                        .editMode = false,
+                    }, (ValueFloat){
+                        .value = 2.0,
+                        .textVal = "2.0",
+                        .editMode = false,
+                    }
+                }
+            }
+        }
+    };
 
     float yaw = -90.0f * DEG2RAD;
     float pitch = 0.0f;
-
-    DisableCursor();
 
     int frame = 0;
     while (!WindowShouldClose()) {    // Detect window close button or ESC key
@@ -369,14 +393,16 @@ int main(int argc, char *argv[]) {
         float res[2] = { (float)GetScreenWidth(), (float)GetScreenHeight() };
         float time_s = GetTime();
 
-        BasisVectors vectors = Look(&yaw, &pitch);
+        BasisVectors vectors = Look(&yaw, &pitch, cursorEnabled);
 
         int changed = 0;
         if (Movement(&camera, vectors) || Zoom(&camera, settings) || Settings(&settings)) {
             changed = 1;
-        } else if (GetMouseDelta().x != 0.0f || GetMouseDelta().y != 0.0f) {
+        } else if ((GetMouseDelta().x != 0.0f || GetMouseDelta().y != 0.0f) && !cursorEnabled) {
             changed = 1;
         }
+
+        ToggleCursor(&cursorEnabled);
 
         float pos[3] = {camera.position.x, camera.position.y, camera.position.z};
 
@@ -432,6 +458,8 @@ int main(int argc, char *argv[]) {
                 );
                 DrawInfo(camera, settings, frame, (Vector2){yaw, pitch});
                 DrawCircle(res[0] / 2.0, res[1] / 2.0, 2.0, BLACK);
+
+                MainGUI(&settings, &gui);
             EndDrawing();
         } else {
             DenoiserShaderValues denoiserValues = {
@@ -462,6 +490,8 @@ int main(int argc, char *argv[]) {
                 );
                 DrawInfo(camera, settings, frame, (Vector2){yaw, pitch});
                 DrawCircle(res[0] / 2.0, res[1] / 2.0, 2.0, BLACK);
+
+                MainGUI(&settings, &gui);
             EndDrawing();
 
             useA = !useA;

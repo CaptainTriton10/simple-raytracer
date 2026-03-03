@@ -17,9 +17,11 @@ typedef struct BasisVectors {
 
 bool Movement(Camera *camera, BasisVectors vectors);
 bool Zoom(Camera *camera, RenderSettings settings);
-BasisVectors Look(float *yaw, float *pitch);
+BasisVectors Look(float *yaw, float *pitch, bool isEnabled);
 
 bool Settings(RenderSettings *settings);
+void ToggleCursor(bool *isEnabled);
+
 void DrawInfo(Camera camera, RenderSettings settings, int frame, Vector2 cameraRotation);
 
 #endif

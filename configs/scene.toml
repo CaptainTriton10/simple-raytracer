@@ -49,9 +49,9 @@ roughness = 0.0
 [mat_diffuse1]
 type = "diffuse"
 albedo = [0.7, 0.3, 0.3]
-texture = 2
+texture = "./textures\\netherrack.png"
 
 [mat_diffuse2]
 type = "diffuse"
 albedo = [0.7, 0.3, 0.3]
-texture = 0
+texture = ".\textures\\stone.png"
