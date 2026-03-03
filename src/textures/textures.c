@@ -45,9 +45,9 @@ Image CreateAtlas(Atlas atlas) {
         );
     }
 
-    if (DEBUG_ATLAS) {
+    #if !defined (DEBUG_ATLAS)
         ExportImage(output, "atlas_debug.jpg");
-    }
+    #endif
 
     printf("Created atlas. \n");
     free(scaledTextures);

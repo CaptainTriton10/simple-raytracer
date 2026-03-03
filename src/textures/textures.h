@@ -4,7 +4,6 @@
 #include <raylib.h>
 #include <stddef.h>
 
-#define DEBUG_ATLAS 0
 #define MAX_LOOP_DEPTH 256
 #define MAX_TEXTURE_PATH 64
 
