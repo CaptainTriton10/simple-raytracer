@@ -6,6 +6,7 @@
 #include <stddef.h>
 
 #define DATA_WIDTH 5
+#define MAX_BUFFER_SIZE 32
 
 #define NONE -1
 #define BVH_NODE 0
@@ -50,6 +51,7 @@ typedef struct Hittable {
 
 typedef struct Scene {
     Hittable *objects;
+    char **names;
     size_t objCount;
     float sky[3];
     AABB bbox;

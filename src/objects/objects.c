@@ -183,5 +183,9 @@ void CubeToQuads(Quad *quads, Cube cube) {
 void SceneFree(Scene *scene) {
     if (!scene) return;
 
+    for (int i = 0; i < scene->objCount; i++) {
+        free(scene->names[i]);
+    }
+
     free(scene->objects);
 }

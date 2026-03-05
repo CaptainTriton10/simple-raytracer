@@ -207,7 +207,7 @@ Scene ParseSceneConfig(const char *filename, Atlas atlas) {
     char *objNames[objCount];
 
     Hittable *objects = NULL;
-    size_t objectsSize = 0;
+    size_t objectSizes[objCount];
 
     size_t primativeCount = 0;
 
@@ -219,23 +219,44 @@ Scene ParseSceneConfig(const char *filename, Atlas atlas) {
             Hittable objBuf[6];
             size_t objSize = GetConfigObject(objBuf, result, objNames[i], atlas);
 
-            Hittable *newPtr = realloc(objects, sizeof(Hittable) * (objectsSize + objSize));
+            Hittable *newPtr = realloc(objects, sizeof(Hittable) * (primativeCount + objSize));
             if (!newPtr) {
                 free(objects);
                 error("Memory allocation failed");
             }
 
             for (int j = 0; j < objSize; j++) {
-                newPtr[objectsSize + j] = objBuf[j];
+                newPtr[primativeCount + j] = objBuf[j];
             }
 
-            objectsSize += objSize;
             primativeCount += objSize;
+
+            objectSizes[i] = objSize;
 
             objects = newPtr;
         } else {
             error("Object name is not a string.");
         }
+    }
+
+    char **sceneNames = malloc(primativeCount * sizeof(char*));
+
+    int count = 0;
+    for (int i = 0; i < objCount; i++) {
+        if (objectSizes[i] == 1) {
+            sceneNames[count] = malloc(MAX_BUFFER_SIZE);
+            strcpy(sceneNames[count], objNames[i]);
+        } else {
+            for (int j = 0; j < objectSizes[i]; j++) {
+                char name[MAX_BUFFER_SIZE];
+                sprintf(name, "%s [%d]", objNames[i], j + 1);
+
+                sceneNames[count + j] = malloc(MAX_BUFFER_SIZE);
+                strcpy(sceneNames[count + j], name);
+            }
+        }
+
+        count += objectSizes[i];
     }
 
     float skyColour[3] = {1.0, 0.0, 1.0};
@@ -246,6 +267,7 @@ Scene ParseSceneConfig(const char *filename, Atlas atlas) {
     Scene scene = {
         .objCount = primativeCount,
         .objects = objects,
+        .names = sceneNames
     };
 
     memcpy(scene.sky, skyColour, sizeof(skyColour));
@@ -364,20 +386,36 @@ int main(int argc, char *argv[]) {
 
     GUI gui = {
         .sidebar = {
-            .position = {
-                .v = {
-                    (ValueFloat){
-                        .value = 0.0,
-                        .textVal = "0.0",
-                        .editMode = false,
-                    }, (ValueFloat){
-                        .value = 1.0,
-                        .textVal = "1.0",
-                        .editMode = false,
-                    }, (ValueFloat){
-                        .value = 2.0,
-                        .textVal = "2.0",
-                        .editMode = false,
+            .properties = {
+                .position = {
+                    {
+                        {
+                            .value = 1.0,
+                            .textVal = "1.0",
+                            .editMode = false
+                        }, {
+                            .value = 1.0,
+                            .textVal = "1.0",
+                            .editMode = false
+                        }, {
+                            .value = 1.0,
+                            .textVal = "1.0",
+                            .editMode = false
+                        }
+                    }
+                },
+                .scroll = Vector2Zero()
+            },
+            .outliner = {
+                .scroll = Vector2Zero(),
+                .objects = {
+                    {
+                        .name = "Object 1",
+                        .index = 0
+                    },
+                    {
+                        .name = "Object 2",
+                        .index = 1
                     }
                 }
             }
@@ -459,7 +497,7 @@ int main(int argc, char *argv[]) {
                 DrawInfo(camera, settings, frame, (Vector2){yaw, pitch});
                 DrawCircle(res[0] / 2.0, res[1] / 2.0, 2.0, BLACK);
 
-                MainGUI(&settings, &gui);
+                MainGUI(&settings, &gui, scene);
             EndDrawing();
         } else {
             DenoiserShaderValues denoiserValues = {
@@ -491,7 +529,7 @@ int main(int argc, char *argv[]) {
                 DrawInfo(camera, settings, frame, (Vector2){yaw, pitch});
                 DrawCircle(res[0] / 2.0, res[1] / 2.0, 2.0, BLACK);
 
-                MainGUI(&settings, &gui);
+                MainGUI(&settings, &gui, scene);
             EndDrawing();
 
             useA = !useA;

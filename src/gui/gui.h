@@ -2,8 +2,7 @@
 #define GUI_H
 
 #include "../renderer/renderer.h"
-
-#define MAX_BUFFER_SIZE 32
+#include "../objects/objects.h"
 
 typedef struct ValueFloat {
     float value;
@@ -11,20 +10,36 @@ typedef struct ValueFloat {
     char textVal[MAX_BUFFER_SIZE];
 } ValueFloat;
 
+typedef struct ObjectEntry {
+    char *name;
+    int index;
+    Hittable object;
+} ObjectEntry;
+
 typedef struct ValueVec3 {
     ValueFloat v[3];
 } ValueVec3;
 
-typedef struct Sidebar {
+typedef struct Properties {
     ValueVec3 position;
+    ObjectEntry selected;
+    Vector2 scroll;
+} Properties;
+
+typedef struct Outliner {
+    ObjectEntry objects[32];
+    Vector2 scroll;
+} Outliner;
+
+typedef struct Sidebar {
+    Properties properties;
+    Outliner outliner;
 } Sidebar;
 
 typedef struct GUI {
     Sidebar sidebar;
 } GUI;
 
-static void Style();
-static void SidebarGUI(RenderSettings *settings, int width, GUI *gui);
-void MainGUI(RenderSettings *settings, GUI *gui);
+void MainGUI(RenderSettings *settings, GUI *gui, Scene scene);
 
 #endif
