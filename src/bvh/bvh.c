@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define BVH_DATA_WIDTH 3
+
 static void CalculateSphereBBox(Sphere *s) {
     Vector3 rvec = {s->radius, s->radius, s->radius};
     Vector3 staticCenter = {s->pos.x, s->pos.y, s->pos.z};
@@ -113,4 +115,58 @@ int InitBVHNode(Scene *scene, size_t start, size_t end, BVHNode *nodes) {
     nodes[nodeIndex] = node;
 
     return nodeIndex;
+}
+
+Texture2D CreateBVHData(BVHNode *nodes, size_t nodeCount) {
+    size_t dataSize = nodeCount * BVH_DATA_WIDTH * 4;
+    float *data = malloc(dataSize * sizeof(float));
+
+    for (int i = 0; i < nodeCount; i++) {
+        int base = i * BVH_DATA_WIDTH * 4;
+
+        data[base + 0] = nodes[i].bbox.x.min;
+        data[base + 1] = nodes[i].bbox.y.min;
+        data[base + 2] = nodes[i].bbox.z.min;
+        data[base + 3] = 0.0f;
+
+        data[base + 4] = nodes[i].bbox.x.max;
+        data[base + 5] = nodes[i].bbox.y.max;
+        data[base + 6] = nodes[i].bbox.z.max;
+        data[base + 7] = 0.0f;
+
+        data[base + 8] = nodes[i].left.type;
+        data[base + 9] = nodes[i].left.index;
+        data[base + 10] = nodes[i].right.type;
+        data[base + 11] = nodes[i].right.index;
+    }
+
+    Image dataImage = {
+        .data = data,
+        .width = BVH_DATA_WIDTH,
+        .height = nodeCount,
+        .mipmaps = 1,
+        .format = PIXELFORMAT_UNCOMPRESSED_R32G32B32A32
+    };
+
+    Texture2D dataTexture = LoadTextureFromImage(dataImage);
+
+    SetTextureFilter(dataTexture, TEXTURE_FILTER_POINT);
+    SetTextureWrap(dataTexture, TEXTURE_WRAP_CLAMP);
+
+    return dataTexture;
+}
+
+void CreateBVH(Scene *scene, BVHNode *nodes) {
+    printf("Creating BVH...\n");
+    double startTime = GetTime();
+
+    ComputeWorldBBoxes(scene);
+
+    scene->nodeCount = 0;
+
+    int root = InitBVHNode(scene, 0, scene->objCount, nodes);
+
+    printf("BVH created: %d nodes\n", scene->nodeCount);
+    double totalTime = (GetTime() - startTime) * 1000;
+    printf("BVH creation time: %fms\n", totalTime);
 }

@@ -180,6 +180,37 @@ void CubeToQuads(Quad *quads, Cube cube) {
     };
 }
 
+Texture2D CreateSceneData(Hittable objects[], size_t len) {
+    size_t dataSize = len * DATA_WIDTH * 4;
+    float *data = malloc(dataSize * sizeof(float));
+
+    for (int i = 0; i < len; i++) {
+        int base = i * DATA_WIDTH * 4;
+
+        for (int j = 0; j < DATA_WIDTH; j++) {
+            data[base + j * 4 + 0] = objects[i].data[j].x;
+            data[base + j * 4 + 1] = objects[i].data[j].y;
+            data[base + j * 4 + 2] = objects[i].data[j].z;
+            data[base + j * 4 + 3] = objects[i].data[j].w;
+        }
+    }
+
+    Image dataImage = {
+        .data = data,
+        .width = DATA_WIDTH,
+        .height = len,
+        .mipmaps = 1,
+        .format = PIXELFORMAT_UNCOMPRESSED_R32G32B32A32
+    };
+
+    Texture2D dataTexture = LoadTextureFromImage(dataImage);
+
+    SetTextureFilter(dataTexture, TEXTURE_FILTER_POINT);
+    SetTextureWrap(dataTexture, TEXTURE_WRAP_CLAMP);
+
+    return dataTexture;
+}
+
 void SceneFree(Scene *scene) {
     if (!scene) return;
 

@@ -1,4 +1,6 @@
 #include "renderer.h"
+#include "../utils/utils.h"
+#include <stdio.h>
 
 RaytracerShaderLocations GetRaytracerLocations(Shader shader) {
     RaytracerShaderLocations locs = {
@@ -55,4 +57,35 @@ void SetDenoiserValues(Shader shader, DenoiserShaderLocations locs, DenoiserShad
     SetShaderValue(shader, locs.resolution, values.resolution, SHADER_UNIFORM_VEC2);
     SetShaderValue(shader, locs.changed, &values.changed, SHADER_UNIFORM_INT);
     SetShaderValue(shader, locs.frame, &values.frame, SHADER_UNIFORM_INT);
+}
+
+Shader InjectShaderData(const char *filename, Scene scene) {
+    FILE *fptr;
+    fopen_s(&fptr, filename, "r");
+
+    if (fptr == NULL) {
+        char errMsg[256];
+        sprintf(errMsg, "Unable to open file [%s]", filename);
+
+        error(errMsg);
+    }
+
+    // Get file size
+    fseek(fptr, 0, SEEK_END);
+    const size_t fileSize = ftell(fptr);
+    fseek(fptr, 0, SEEK_SET);
+
+    char shaderBuffer[fileSize];
+    fread(shaderBuffer, sizeof(char), fileSize, fptr);
+
+    char maxObj[16];
+    sprintf(maxObj, "%lld", scene.objCount);
+    char *temp1 = ReplaceSubstr(shaderBuffer, "${MAX_OBJ}", maxObj);
+
+    char bvhStack[16];
+    sprintf(bvhStack, "%d", scene.nodeCount);
+    char *temp2 = ReplaceSubstr(temp1, "${MAX_BVH}", bvhStack);
+
+    Shader shader = LoadShaderFromMemory(0, temp2);
+    return shader;
 }

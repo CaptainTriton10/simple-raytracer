@@ -2,6 +2,7 @@
 #define RENDERER_H
 
 #include <raylib.h>
+#include "../objects/objects.h"
 
 typedef struct RenderSettings {
     int width;
@@ -65,5 +66,7 @@ void SetRaytracerValues(Shader shader, RaytracerShaderLocations locs, RaytracerS
 
 DenoiserShaderLocations GetDenoiserLocations(Shader shader);
 void SetDenoiserValues(Shader shader, DenoiserShaderLocations locs, DenoiserShaderValues values);
+
+Shader InjectShaderData(const char *filename, Scene scene);
 
 #endif

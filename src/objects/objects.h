@@ -66,6 +66,8 @@ Quad HittableToQuad(Hittable h);
 
 void CubeToQuads(Quad *quads, Cube cube);
 
+Texture2D CreateSceneData(Hittable objects[], size_t len);
+
 void SceneFree(Scene *scene);
 
 #endif

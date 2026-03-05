@@ -3,6 +3,7 @@
 
 #include "../objects/objects.h"
 #include "../textures/textures.h"
+#include "../renderer/renderer.h"
 #include "../../include/tomlc17.h"
 
 #define LAMBERTIAN 0
@@ -16,5 +17,8 @@ void GetConfigVec3(toml_result_t table, float *vec, char *section, char *item);
 void GetConfigVec2(toml_result_t table, float *vec, char *section, char *item);
 
 size_t GetConfigObject(Hittable *objects, toml_result_t table, char *name, Atlas atlas);
+
+RenderSettings ParseRendererConfig(const char *filename);
+Scene ParseSceneConfig(const char *filename, Atlas atlas);
 
 #endif

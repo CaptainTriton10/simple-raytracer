@@ -20,4 +20,7 @@ typedef struct BVHNode {
 void ComputeWorldBBoxes(Scene *scene);
 int InitBVHNode(Scene *scene, size_t start, size_t end, BVHNode *nodes);
 
+Texture2D CreateBVHData(BVHNode *nodes, size_t nodeCount);
+void CreateBVH(Scene *scene, BVHNode *nodes);
+
 #endif

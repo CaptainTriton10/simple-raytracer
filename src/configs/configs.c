@@ -227,3 +227,160 @@ size_t GetConfigObject(Hittable *objects, toml_result_t table, char *name, Atlas
     error(errMsg);
     return 0;
 }
+
+RenderSettings ParseRendererConfig(const char *filename) {
+    const char headerName[] = "settings";
+    toml_result_t result = toml_parse_file_ex(filename);
+
+    if (!result.ok) {
+        char errMsg[128];
+        sprintf(errMsg, "%s config parse error.", filename);
+
+        error(errMsg);
+    }
+
+    RenderSettings settings;
+
+    toml_datum_t widthT = GetConfigParam(result, (char*)headerName, "width", TOML_INT64);
+    if (widthT.u.int64 <= 0) {
+        error("Width cannot be negative or 0.");
+    }
+    settings.width = widthT.u.int64;
+
+    toml_datum_t heightT = GetConfigParam(result, (char*)headerName, "height", TOML_INT64);
+    if (heightT.u.int64 <= 0) {
+        error("Height cannot be negative or 0.");
+    }
+    settings.height = heightT.u.int64;
+
+    toml_datum_t fullscreenT = GetConfigParam(result, (char*)headerName, "fullscreen", TOML_BOOLEAN);
+    settings.fullscreen = fullscreenT.u.boolean;
+
+    float fovLimits[2];
+    GetConfigVec2(result, fovLimits, (char*)headerName, "fov_limits");
+    if (fovLimits[0] > fovLimits[1]) {
+        char errMsg[256];
+        sprintf(errMsg, "The first argument of fov_limits cannot be greater than the second [%f > %f].", fovLimits[0], fovLimits[1]);
+
+        error(errMsg);
+    }
+
+
+    toml_datum_t fovT = GetConfigParam(result, (char*)headerName, "fov", TOML_FP64);
+    settings.fov = fovT.u.fp64;
+
+    float camPos[3];
+    GetConfigVec3(result, camPos, (char*)headerName, "camera_position");
+
+    toml_datum_t aaT = GetConfigParam(result, (char*)headerName, "anti_aliasing", TOML_BOOLEAN);
+    settings.aaEnabled = aaT.u.boolean;
+    toml_datum_t maxDepthT = GetConfigParam(result, (char*)headerName, "max_depth", TOML_INT64);
+    settings.maxDepth = maxDepthT.u.boolean;
+
+    toml_datum_t texturesPathT = GetConfigParam(result, (char*)headerName, "textures_path", TOML_STRING);
+
+    char key[128];
+    sprintf(key, "%s.atlas_chunk_size", headerName);
+
+    toml_datum_t atlasChunkSizeT = toml_seek(result.toptab, key);
+    if (atlasChunkSizeT.type != TOML_INT64) {
+        settings.atlasChunkSize = 512;
+    } else {
+        settings.atlasChunkSize = atlasChunkSizeT.u.int64;
+    }
+
+    settings.texturesPath = _strdup(texturesPathT.u.s);
+
+    memcpy(settings.fovLimits, fovLimits, sizeof(fovLimits));
+    memcpy(settings.cameraPosition, camPos, sizeof(camPos));
+
+    return settings;
+}
+
+Scene ParseSceneConfig(const char *filename, Atlas atlas) {
+    toml_result_t result = toml_parse_file_ex(filename);
+
+    if (!result.ok) {
+        error("Config parse error.");
+    }
+
+    // Get objects and materials
+    toml_datum_t objectsT = GetConfigParam(result, "data", "objects", TOML_ARRAY);
+
+    const size_t objCount = objectsT.u.arr.size;
+    char *objNames[objCount];
+
+    Hittable *objects = NULL;
+    size_t objectSizes[objCount];
+
+    size_t primativeCount = 0;
+
+    // Get the names of all the objects
+    for (int i = 0; i < objCount; i++) {
+        if (objectsT.u.arr.elem[i].type == TOML_STRING){
+            objNames[i] = _strdup(objectsT.u.arr.elem[i].u.s);
+
+            Hittable objBuf[6];
+            size_t objSize = GetConfigObject(objBuf, result, objNames[i], atlas);
+
+            Hittable *newPtr = realloc(objects, sizeof(Hittable) * (primativeCount + objSize));
+            if (!newPtr) {
+                free(objects);
+                error("Memory allocation failed");
+            }
+
+            for (int j = 0; j < objSize; j++) {
+                newPtr[primativeCount + j] = objBuf[j];
+            }
+
+            primativeCount += objSize;
+
+            objectSizes[i] = objSize;
+
+            objects = newPtr;
+        } else {
+            error("Object name is not a string.");
+        }
+    }
+
+    char **sceneNames = malloc(primativeCount * sizeof(char*));
+
+    int count = 0;
+    for (int i = 0; i < objCount; i++) {
+        if (objectSizes[i] == 1) {
+            sceneNames[count] = malloc(MAX_BUFFER_SIZE);
+            strcpy(sceneNames[count], objNames[i]);
+        } else {
+            for (int j = 0; j < objectSizes[i]; j++) {
+                char name[MAX_BUFFER_SIZE];
+                sprintf(name, "%s [%d]", objNames[i], j + 1);
+
+                sceneNames[count + j] = malloc(MAX_BUFFER_SIZE);
+                strcpy(sceneNames[count + j], name);
+            }
+        }
+
+        count += objectSizes[i];
+    }
+
+    float skyColour[3] = {1.0, 0.0, 1.0};
+    if (toml_seek(result.toptab, "world.sky_colour").type == TOML_ARRAY) {
+        GetConfigVec3(result, skyColour, "world", "sky_colour");
+    }
+
+    Scene scene = {
+        .objCount = primativeCount,
+        .objects = objects,
+        .names = sceneNames
+    };
+
+    memcpy(scene.sky, skyColour, sizeof(skyColour));
+
+    toml_free(result);
+
+    for (int i = 0; i < objCount; i++) {
+        free(objNames[i]);
+    }
+
+    return scene;
+}
