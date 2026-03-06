@@ -343,20 +343,22 @@ Scene ParseSceneConfig(const char *filename, Atlas atlas) {
         }
     }
 
-    char **sceneNames = malloc(primativeCount * sizeof(char*));
-
     int count = 0;
     for (int i = 0; i < objCount; i++) {
         if (objectSizes[i] == 1) {
-            sceneNames[count] = malloc(MAX_BUFFER_SIZE);
-            strcpy(sceneNames[count], objNames[i]);
+            objects[count].name = malloc(MAX_BUFFER_SIZE);
+            strcpy(objects[count].name, objNames[i]);
+
+            objects[count].index = count;
         } else {
             for (int j = 0; j < objectSizes[i]; j++) {
                 char name[MAX_BUFFER_SIZE];
                 sprintf(name, "%s [%d]", objNames[i], j + 1);
 
-                sceneNames[count + j] = malloc(MAX_BUFFER_SIZE);
-                strcpy(sceneNames[count + j], name);
+                objects[count + j].name = malloc(MAX_BUFFER_SIZE);
+                strcpy(objects[count + j].name, name);
+
+                objects[count + j].index = count + j;
             }
         }
 
@@ -371,7 +373,6 @@ Scene ParseSceneConfig(const char *filename, Atlas atlas) {
     Scene scene = {
         .objCount = primativeCount,
         .objects = objects,
-        .names = sceneNames
     };
 
     memcpy(scene.sky, skyColour, sizeof(skyColour));

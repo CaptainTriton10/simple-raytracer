@@ -44,14 +44,15 @@ typedef struct Cube {
 } Cube;
 
 typedef struct Hittable {
+    int index;
     int type;
+    char *name;
     Vector4 data[DATA_WIDTH];
     AABB bbox;
 } Hittable;
 
 typedef struct Scene {
     Hittable *objects;
-    char **names;
     size_t objCount;
     float sky[3];
     AABB bbox;

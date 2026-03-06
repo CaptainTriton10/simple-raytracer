@@ -108,6 +108,7 @@ int main(int argc, char *argv[]) {
 
     GUI gui = {
         .sidebar = {
+            .selected = 0,
             .properties = {
                 .position = {
                     {
@@ -155,7 +156,7 @@ int main(int argc, char *argv[]) {
 
         BasisVectors vectors = Look(&yaw, &pitch, cursorEnabled);
 
-        int changed = 0;
+        int changed = 1;
         if (Movement(&camera, vectors) || Zoom(&camera, settings) || Settings(&settings)) {
             changed = 1;
         } else if ((GetMouseDelta().x != 0.0f || GetMouseDelta().y != 0.0f) && !cursorEnabled) {
@@ -219,7 +220,7 @@ int main(int argc, char *argv[]) {
                 DrawInfo(camera, settings, frame, (Vector2){yaw, pitch});
                 DrawCircle(res[0] / 2.0, res[1] / 2.0, 2.0, BLACK);
 
-                MainGUI(&settings, &gui, scene);
+                MainGUI(&settings, &gui, &scene);
             EndDrawing();
         } else {
             DenoiserShaderValues denoiserValues = {
@@ -251,7 +252,7 @@ int main(int argc, char *argv[]) {
                 DrawInfo(camera, settings, frame, (Vector2){yaw, pitch});
                 DrawCircle(res[0] / 2.0, res[1] / 2.0, 2.0, BLACK);
 
-                MainGUI(&settings, &gui, scene);
+                MainGUI(&settings, &gui, &scene);
             EndDrawing();
 
             useA = !useA;

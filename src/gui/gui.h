@@ -34,12 +34,13 @@ typedef struct Outliner {
 typedef struct Sidebar {
     Properties properties;
     Outliner outliner;
+    int selected;
 } Sidebar;
 
 typedef struct GUI {
     Sidebar sidebar;
 } GUI;
 
-void MainGUI(RenderSettings *settings, GUI *gui, Scene scene);
+void MainGUI(RenderSettings *settings, GUI *gui, Scene *scene);
 
 #endif

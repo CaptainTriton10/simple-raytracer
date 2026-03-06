@@ -214,9 +214,5 @@ Texture2D CreateSceneData(Hittable objects[], size_t len) {
 void SceneFree(Scene *scene) {
     if (!scene) return;
 
-    for (int i = 0; i < scene->objCount; i++) {
-        free(scene->names[i]);
-    }
-
     free(scene->objects);
 }
