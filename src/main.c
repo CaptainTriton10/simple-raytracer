@@ -86,6 +86,7 @@ int main(int argc, char *argv[]) {
 
     SetTargetFPS(1000);
 
+    // Create initial scene data
     Texture2D data = CreateSceneData(scene.objects, scene.objCount);
     Texture2D bvhData = CreateBVHData(bvhNodes, scene.nodeCount);
 
@@ -106,53 +107,23 @@ int main(int argc, char *argv[]) {
     bool cursorEnabled = false;
     DisableCursor();
 
-    GUI gui = {
-        .sidebar = {
-            .selected = 0,
-            .properties = {
-                .position = {
-                    {
-                        {
-                            .value = 1.0,
-                            .textVal = "1.0",
-                            .editMode = false
-                        }, {
-                            .value = 1.0,
-                            .textVal = "1.0",
-                            .editMode = false
-                        }, {
-                            .value = 1.0,
-                            .textVal = "1.0",
-                            .editMode = false
-                        }
-                    }
-                },
-                .scroll = Vector2Zero()
-            },
-            .outliner = {
-                .scroll = Vector2Zero(),
-                .objects = {
-                    {
-                        .name = "Object 1",
-                        .index = 0
-                    },
-                    {
-                        .name = "Object 2",
-                        .index = 1
-                    }
-                }
-            }
-        }
-    };
+    GUI gui = {0};
+    InitSelectedObject(scene.objects[0], &gui);
 
     float yaw = -90.0f * DEG2RAD;
     float pitch = 0.0f;
+
+    int selectedObject = 0;
 
     int frame = 0;
     while (!WindowShouldClose()) {    // Detect window close button or ESC key
         double startTime1 = GetTime();
         float res[2] = { (float)GetScreenWidth(), (float)GetScreenHeight() };
         float time_s = GetTime();
+
+        printf("selected: %d\n", selectedObject);
+        data = CreateSceneData(scene.objects, scene.objCount);    // Create initial scene data
+        bvhData = CreateBVHData(bvhNodes, scene.nodeCount);
 
         BasisVectors vectors = Look(&yaw, &pitch, cursorEnabled);
 
@@ -220,7 +191,7 @@ int main(int argc, char *argv[]) {
                 DrawInfo(camera, settings, frame, (Vector2){yaw, pitch});
                 DrawCircle(res[0] / 2.0, res[1] / 2.0, 2.0, BLACK);
 
-                MainGUI(&settings, &gui, &scene);
+                selectedObject = MainGUI(&settings, &gui, &scene);
             EndDrawing();
         } else {
             DenoiserShaderValues denoiserValues = {
@@ -252,7 +223,7 @@ int main(int argc, char *argv[]) {
                 DrawInfo(camera, settings, frame, (Vector2){yaw, pitch});
                 DrawCircle(res[0] / 2.0, res[1] / 2.0, 2.0, BLACK);
 
-                MainGUI(&settings, &gui, &scene);
+                selectedObject = MainGUI(&settings, &gui, &scene);
             EndDrawing();
 
             useA = !useA;

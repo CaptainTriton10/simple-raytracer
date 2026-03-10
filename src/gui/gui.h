@@ -3,6 +3,7 @@
 
 #include "../renderer/renderer.h"
 #include "../objects/objects.h"
+#include <stddef.h>
 
 typedef struct ValueFloat {
     float value;
@@ -21,13 +22,15 @@ typedef struct ValueVec3 {
 } ValueVec3;
 
 typedef struct Properties {
-    ValueVec3 position;
-    ObjectEntry selected;
+    ValueVec3 position; // Any
+    ValueFloat radius;  // Sphere
+    ValueVec3 u;  // Quad
+    ValueVec3 v;  // Quad
     Vector2 scroll;
 } Properties;
 
 typedef struct Outliner {
-    ObjectEntry objects[32];
+    ObjectEntry objects[32];    // TODO: Change this!
     Vector2 scroll;
 } Outliner;
 
@@ -39,8 +42,10 @@ typedef struct Sidebar {
 
 typedef struct GUI {
     Sidebar sidebar;
+    int trueSelected;
 } GUI;
 
-void MainGUI(RenderSettings *settings, GUI *gui, Scene *scene);
+void InitSelectedObject(Hittable object, GUI *gui);
+int MainGUI(RenderSettings *settings, GUI *gui, Scene *scene);
 
 #endif
