@@ -45,7 +45,7 @@ Image CreateAtlas(Atlas atlas) {
         );
     }
 
-    #if !defined (DEBUG_ATLAS)
+    #if defined (DEBUG_ATLAS)
         ExportImage(output, "atlas_debug.jpg");
     #endif
 

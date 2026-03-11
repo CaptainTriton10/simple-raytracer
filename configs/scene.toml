@@ -1,5 +1,5 @@
 [data]
-objects = ["ground", "glass_ball", "metal_ball", "cube"]
+objects = ["ground", "glass_ball", "red_ball", "cube"]
 
 [world]
 sky_colour = [1.0, 1.0, 1.0]
@@ -23,7 +23,7 @@ a = [-0.5, -0.5, -0.5]
 b = [0.5, 0.5, 0.5]
 material = "mat_diffuse1"
 
-[metal_ball]
+[red_ball]
 type = "sphere"
 position = [-1.2, 0.0, 0.0]
 radius = 0.5

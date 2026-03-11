@@ -110,10 +110,10 @@ int main(int argc, char *argv[]) {
     GUI gui = {0};
     InitSelectedObject(scene.objects[0], &gui);
 
+    bool guiEnabled = true;
+
     float yaw = -90.0f * DEG2RAD;
     float pitch = 0.0f;
-
-    int selectedObject = 0;
 
     int frame = 0;
     while (!WindowShouldClose()) {    // Detect window close button or ESC key
@@ -121,18 +121,21 @@ int main(int argc, char *argv[]) {
         float res[2] = { (float)GetScreenWidth(), (float)GetScreenHeight() };
         float time_s = GetTime();
 
-        printf("selected: %d\n", selectedObject);
-        data = CreateSceneData(scene.objects, scene.objCount);    // Create initial scene data
+        data = CreateSceneData(scene.objects, scene.objCount);    // Create new scene data
         bvhData = CreateBVHData(bvhNodes, scene.nodeCount);
 
         BasisVectors vectors = Look(&yaw, &pitch, cursorEnabled);
 
-        int changed = 1;
+        int changed = 0;
         if (Movement(&camera, vectors) || Zoom(&camera, settings) || Settings(&settings)) {
             changed = 1;
         } else if ((GetMouseDelta().x != 0.0f || GetMouseDelta().y != 0.0f) && !cursorEnabled) {
             changed = 1;
+        } else if (cursorEnabled) {
+            changed = 1;
         }
+
+        if (IsKeyPressed(KEY_H)) guiEnabled = !guiEnabled;
 
         ToggleCursor(&cursorEnabled);
 
@@ -191,7 +194,8 @@ int main(int argc, char *argv[]) {
                 DrawInfo(camera, settings, frame, (Vector2){yaw, pitch});
                 DrawCircle(res[0] / 2.0, res[1] / 2.0, 2.0, BLACK);
 
-                selectedObject = MainGUI(&settings, &gui, &scene);
+                if (guiEnabled)
+                    MainGUI(&settings, &gui, &scene);
             EndDrawing();
         } else {
             DenoiserShaderValues denoiserValues = {
@@ -223,7 +227,8 @@ int main(int argc, char *argv[]) {
                 DrawInfo(camera, settings, frame, (Vector2){yaw, pitch});
                 DrawCircle(res[0] / 2.0, res[1] / 2.0, 2.0, BLACK);
 
-                selectedObject = MainGUI(&settings, &gui, &scene);
+                if (guiEnabled)
+                    MainGUI(&settings, &gui, &scene);
             EndDrawing();
 
             useA = !useA;

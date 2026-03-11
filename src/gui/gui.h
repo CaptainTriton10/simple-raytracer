@@ -46,6 +46,6 @@ typedef struct GUI {
 } GUI;
 
 void InitSelectedObject(Hittable object, GUI *gui);
-int MainGUI(RenderSettings *settings, GUI *gui, Scene *scene);
+void MainGUI(RenderSettings *settings, GUI *gui, Scene *scene);
 
 #endif

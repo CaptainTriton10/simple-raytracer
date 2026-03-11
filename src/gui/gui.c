@@ -268,8 +268,9 @@ void InitSelectedObject(Hittable object, GUI *gui) {
     }
 }
 
-int MainGUI(RenderSettings *settings, GUI *gui, Scene *scene) {
+void MainGUI(RenderSettings *settings, GUI *gui, Scene *scene) {
     Style();
+    GUI prevGui = *gui;
     int prevSelected = gui->sidebar.selected;
 
     size_t size = scene->objCount * sizeof(Hittable);
@@ -287,6 +288,4 @@ int MainGUI(RenderSettings *settings, GUI *gui, Scene *scene) {
     int trueIndex = GetTrueIndex(orderedObjects[gui->sidebar.selected], *scene);
 
     UpdateObject(&scene->objects[trueIndex], gui);
-
-    return trueIndex;
 }
