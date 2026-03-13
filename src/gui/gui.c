@@ -160,12 +160,12 @@ int Compare(void *_context, const void *a, const void *b) {
     const Hittable *objA = a;
     const Hittable *objB = b;
 
-    return objA->index - objB->index;
+    return objA->id - objB->id;
 }
 
 static int GetTrueIndex(Hittable object, Scene scene) {
     for (int i = 0; i < scene.objCount; i++) {
-        if (scene.objects[i].index == object.index) {
+        if (scene.objects[i].id == object.id) {
             return i;
         }
     }

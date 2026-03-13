@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAX_OBJECTS 13
+#define ENABLE_GUI
 
 // On Windows, target dedicated GPU with NVIDIA Optimus and AMD PowerXpress/Switchable Graphics
 #ifdef _WIN32
@@ -64,6 +64,11 @@ int main(int argc, char *argv[]) {
     } else {
         fprintf(stderr, "Incorrect number of arguments (%d).", argc);
         exit(1);
+    }
+
+    scene.indices = malloc(scene.objCount * sizeof(int));
+    for (int i = 0; i < scene.objCount; i++) {
+        scene.indices[i] = i;
     }
 
     BVHNode *bvhNodes = malloc(sizeof(BVHNode) * (2 * scene.objCount));
@@ -121,6 +126,11 @@ int main(int argc, char *argv[]) {
         float res[2] = { (float)GetScreenWidth(), (float)GetScreenHeight() };
         float time_s = GetTime();
 
+        for (int i = 0; i < scene.objCount; i++) {
+            scene.indices[i] = i;
+        }
+
+        CreateBVH(&scene, bvhNodes);
         data = CreateSceneData(scene.objects, scene.objCount);    // Create new scene data
         bvhData = CreateBVHData(bvhNodes, scene.nodeCount);
 
@@ -194,8 +204,10 @@ int main(int argc, char *argv[]) {
                 DrawInfo(camera, settings, frame, (Vector2){yaw, pitch});
                 DrawCircle(res[0] / 2.0, res[1] / 2.0, 2.0, BLACK);
 
-                if (guiEnabled)
-                    MainGUI(&settings, &gui, &scene);
+                #if defined(ENABLE_GUI)
+                    if (guiEnabled)
+                        MainGUI(&settings, &gui, &scene);
+                #endif
             EndDrawing();
         } else {
             DenoiserShaderValues denoiserValues = {
@@ -227,8 +239,10 @@ int main(int argc, char *argv[]) {
                 DrawInfo(camera, settings, frame, (Vector2){yaw, pitch});
                 DrawCircle(res[0] / 2.0, res[1] / 2.0, 2.0, BLACK);
 
-                if (guiEnabled)
-                    MainGUI(&settings, &gui, &scene);
+                #if defined(ENABLE_GUI)
+                    if (guiEnabled)
+                        MainGUI(&settings, &gui, &scene);
+                #endif
             EndDrawing();
 
             useA = !useA;

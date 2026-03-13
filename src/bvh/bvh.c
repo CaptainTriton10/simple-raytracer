@@ -5,6 +5,11 @@
 
 #define BVH_DATA_WIDTH 3
 
+typedef struct BVHSortContext {
+    Hittable *objects;
+    int axis;
+} BVHSortContext;
+
 static void CalculateSphereBBox(Sphere *s) {
     Vector3 rvec = {s->radius, s->radius, s->radius};
     Vector3 staticCenter = {s->pos.x, s->pos.y, s->pos.z};
@@ -28,10 +33,10 @@ static void CalculateQuadBBox(Quad *quad) {
 }
 
 static AABB ComputeSpanBBox(Scene *scene, int start, int end) {
-    AABB box = scene->objects[start].bbox;
+    AABB box = scene->objects[scene->indices[start]].bbox;
 
     for (int i = start + 1; i < end; i++) {
-        InitAABB2(&box, box, scene->objects[i].bbox);
+        InitAABB2(&box, box, scene->objects[scene->indices[i]].bbox);
     }
 
     return box;
@@ -50,8 +55,6 @@ void ComputeWorldBBoxes(Scene *scene) {
             CalculateQuadBBox(&q);
             scene->objects[i].bbox = q.bbox;
         }
-
-        // InitAABB2(&scene->bbox, scene->bbox, scene->objects[i].bbox);
     }
 }
 
@@ -70,10 +73,16 @@ static int LongestAxis(AABB aabb) {
     else return ySize > zSize ? 1 : 2;
 }
 
-static int BoxCompare(void *context, const void *a, const void *b) {
-    int axis = *(int*) context;
-    Hittable *sa = (Hittable*) a;
-    Hittable *sb = (Hittable*) b;
+static int BoxCompare(void *_context, const void *a, const void *b) {
+    BVHSortContext *context = (BVHSortContext*)_context;
+
+    int axis = context->axis;
+
+    int indexA = *(int*)a;
+    int indexB = *(int*)b;
+
+    Hittable *sa = &context->objects[indexA];
+    Hittable *sb = &context->objects[indexB];
 
     Interval ia = AxisInterval(sa->bbox, axis);
     Interval ib = AxisInterval(sb->bbox, axis);
@@ -94,14 +103,22 @@ int InitBVHNode(Scene *scene, size_t start, size_t end, BVHNode *nodes) {
 
     node.bbox = spanBox;
 
+    int leftIndex = scene->indices[start];
+    int rightIndex = scene->indices[start + 1];
+
     if (objectSpan == 1) {
-        node.left = (HittableRef) {scene->objects[start].type, start};
-        node.right = (HittableRef) { NONE, -1};
+        node.left = (HittableRef) {scene->objects[scene->indices[start]].type, scene->indices[start]};
+        node.right = (HittableRef) {NONE, -1};
     } else if (objectSpan == 2) {
-        node.left = (HittableRef) {scene->objects[start].type, start};
-        node.right = (HittableRef) {scene->objects[start].type, start + 1};
+        node.left = (HittableRef) {scene->objects[scene->indices[start]].type, scene->indices[start]};
+        node.right = (HittableRef) {scene->objects[scene->indices[start + 1]].type, scene->indices[start + 1]};
     } else {
-        qsort_s(&scene->objects[start], objectSpan, sizeof(Hittable), BoxCompare, &axis);
+        BVHSortContext context = {
+            .objects = scene->objects,
+            .axis = axis
+        };
+
+        qsort_s(&scene->indices[start], objectSpan, sizeof(int), BoxCompare, &context);
 
         int mid = start + objectSpan / 2;
 
