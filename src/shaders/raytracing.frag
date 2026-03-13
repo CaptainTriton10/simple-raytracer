@@ -552,6 +552,10 @@ bool HitBVH(Ray ray, out HitRecord rec) {
             stack[sp++] = leftFirst ? node.rightIndex : node.leftIndex;
             stack[sp++] = leftFirst ? node.leftIndex : node.rightIndex;
         }
+        else {
+            if (node.leftType == BVH) stack[sp++] = node.leftIndex;
+            if (node.rightType == BVH) stack[sp++] = node.rightIndex;
+        }
 
         if (node.leftType != BVH) {
             HitRecord temp;

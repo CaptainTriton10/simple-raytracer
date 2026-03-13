@@ -349,7 +349,7 @@ Scene ParseSceneConfig(const char *filename, Atlas atlas) {
             objects[count].name = malloc(MAX_BUFFER_SIZE);
             strcpy(objects[count].name, objNames[i]);
 
-            objects[count].index = count;
+            objects[count].id = count;
         } else {
             for (int j = 0; j < objectSizes[i]; j++) {
                 char name[MAX_BUFFER_SIZE];
@@ -358,7 +358,7 @@ Scene ParseSceneConfig(const char *filename, Atlas atlas) {
                 objects[count + j].name = malloc(MAX_BUFFER_SIZE);
                 strcpy(objects[count + j].name, name);
 
-                objects[count + j].index = count + j;
+                objects[count + j].id = count + j;
             }
         }
 

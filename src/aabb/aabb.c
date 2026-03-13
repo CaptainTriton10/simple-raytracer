@@ -14,7 +14,7 @@ static Interval IntervalExpand(Interval i, float delta) {
 }
 
 static void PadToMinimums(AABB *aabb) {
-    float delta = 0.0001;
+    float delta = 0.001;
 
     float xSize = aabb->x.max - aabb->x.min;
     float ySize = aabb->y.max - aabb->y.min;

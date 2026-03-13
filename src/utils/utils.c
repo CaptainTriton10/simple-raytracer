@@ -13,7 +13,7 @@ char *ReplaceSubstr(char *s, char *orig, char *s2) {
     char *pos = strstr(s, orig);
     if (!pos) {
         fprintf(stderr, "WARNING: pattern [%s] not found in string.\n", orig);
-        return 0;
+        return s;
     }
 
     size_t sLen = strlen(s);
